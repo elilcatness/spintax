@@ -14,3 +14,7 @@ def load_cfg(window: QMainWindow, filename: str = 'cfg.txt'):
             if ',' in value:
                 value = [val.strip() for val in value.split(',')]
             setattr(window, attr, value)
+
+
+def get_extension(filename: str):
+    return filename.split('.')[-1]

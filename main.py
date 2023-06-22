@@ -1,6 +1,6 @@
 import sys
 
-from PyQt6.QtGui import QTextCharFormat, QColor
+from PyQt6.QtGui import QTextCharFormat, QColor, QAction, QKeySequence
 from PyQt6.QtWidgets import (QApplication, QMainWindow, QDialog,
                              QLabel, QPlainTextEdit, QVBoxLayout)
 
@@ -51,10 +51,15 @@ class Window(QMainWindow, UiMainWindow):
         self.setupUi(self)
         self.setWindowTitle('Spintax')
         self.inp_text.selectionChanged.connect(self.handle_selection)
+        self.cancel_action = QAction()
+        self.cancel_action.setShortcut('Ctrl+Z')
+        self.cancel_action.triggered.connect(self.cancel_block)
+        self.inp_text.addAction(self.cancel_action)
         self.text_appearance = TextAppearance()
         self.text_appearance.connect(self.highlight_text)
         self.alternative_wnd = None
         self.blocks = []
+        self.blocks_chronology = []
         self.load_text(self.filename)
         self.inp_text.setReadOnly(True)
 
@@ -109,9 +114,12 @@ class Window(QMainWindow, UiMainWindow):
         for i in range(len(self.blocks)):
             if start < self.blocks[i].get_pos():
                 self.blocks.insert(i, cur_block)
+                idx = i
                 break
         else:
             self.blocks.append(cur_block)
+            idx = len(self.blocks) - 1
+        self.blocks_chronology.append(idx)
         self.repaint()
         self.alternative_wnd = Alternatives(text, self.blocks)
         self.alternative_wnd.exec()
@@ -138,6 +146,11 @@ class Window(QMainWindow, UiMainWindow):
     def show_blocks(self):
         blocks_wnd = Blocks(self.blocks)
         blocks_wnd.exec()
+
+    def cancel_block(self):
+        print('cancel_block')
+        self.blocks.pop(self.blocks_chronology.pop())
+        self.repaint()
 
     # def _choose_color(self, cursor, start: int, end: int):
     #     doc = self.inp_text.document()

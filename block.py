@@ -1,8 +1,3 @@
-"""TODO:
-what if:
-{abc|cde{fgh|hij}|cki}
-"""
-
 from exceptions import NodeException
 
 
@@ -11,6 +6,7 @@ def assert_node_types(func):
         if not isinstance(var, (str, Block)):
             raise NodeException('Invalid type')
         return func(obj, var, *args)
+
     return wrapper
 
 
@@ -52,10 +48,16 @@ class Node:
 
 
 class Block:
-    def __init__(self, *nodes):
-        self.nodes = [Node(n) for n in nodes if not isinstance(n, Node)]
-        # self.start_pos = start_pos
-        # self.end_pos = end_pos
+    def __init__(self, original: str, pos: int, *nodes):
+        self.original = original
+        self.pos = pos
+        self.nodes = [self.original] + [Node(n) for n in nodes if not isinstance(n, Node)]
+
+    def get_original(self):
+        return self.original
+
+    def get_pos(self):
+        return self.pos
 
     def set_nodes(self, nodes: list):
         if all(isinstance((str, Block), node) for node in nodes):
@@ -89,17 +91,3 @@ class Block:
 
     def __str__(self):
         return self.__repr__()
-
-
-def main():
-    n = Node('abc')
-    b = Block('efg')
-    b.add_node('eFg')
-    n += b
-    print(n)
-    n.get_parts()[1].set_node(1, Block('EFG', 'EEFFGG'))
-    print(n)
-
-
-if __name__ == '__main__':
-    main()

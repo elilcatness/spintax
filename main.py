@@ -92,26 +92,48 @@ class Window(QMainWindow, UiMainWindow):
         # print(edges)
         for pos in edges + prev_edges + [edges[0] + 1]:
             cursor.setPosition(pos)
-            print(f'pos: {pos}, color: {cursor.charFormat().background().color().getRgb()}')
+            # print(f'pos: {pos}, color: {cursor.charFormat().background().color().getRgb()}')
             if cursor.charFormat().background().color().getRgb() != (0, 0, 0, 255):
-                print('clearSelection')
+                # print('clearSelection')
                 cursor.clearSelection()
                 self.inp_text.setTextCursor(cursor)
                 return
-        print()
+        # print()
         start, end = edges
         cursor.setPosition(start)
         cursor.setPosition(end, cursor.MoveMode.KeepAnchor)
-        # colors = self._choose_color(cursor, start, end)
-        fmt = QTextCharFormat()
-        fmt.setBackground(QColor(self.colors[len(self.blocks) % 2]))
-        cursor.mergeCharFormat(fmt)
         text = cursor.selectedText()
         cursor.clearSelection()
-        self.blocks.append(Block(text))
         self.inp_text.setTextCursor(cursor)
+        cur_block = Block(text, start)
+        for i in range(len(self.blocks)):
+            if start < self.blocks[i].get_pos():
+                self.blocks.insert(i, cur_block)
+                break
+        else:
+            self.blocks.append(cur_block)
+        self.repaint()
         self.alternative_wnd = Alternatives(text, self.blocks)
         self.alternative_wnd.exec()
+
+    def repaint(self):
+        cursor = self.inp_text.textCursor()
+        cursor.setPosition(0)
+        cursor.setPosition(self.inp_text.document().characterCount() - 1,
+                           cursor.MoveMode.KeepAnchor)
+        cursor.setCharFormat(QTextCharFormat())
+        cursor.clearSelection()
+        # self.inp_text.setTextCursor(cursor)
+        # cursor = self.inp_text.textCursor()
+        for i in range(len(self.blocks)):
+            fmt = QTextCharFormat()
+            fmt.setBackground(QColor(self.colors[i % 2]))
+            pos = self.blocks[i].get_pos()
+            cursor.setPosition(pos)
+            cursor.setPosition(pos + len(self.blocks[i].get_original()),
+                               cursor.MoveMode.KeepAnchor)
+            cursor.mergeCharFormat(fmt)
+            cursor.clearSelection()
 
     def show_blocks(self):
         blocks_wnd = Blocks(self.blocks)

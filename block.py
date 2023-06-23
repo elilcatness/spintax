@@ -11,10 +11,11 @@ def assert_node_types(func):
 
 
 class Node:
-    def __init__(self, *parts):
+    def __init__(self, *parts, delimiter: str = ''):
         if not all(isinstance(p, (str, Block)) for p in parts):
             raise NodeException('Invalid parts types')
         self.parts = list(parts)
+        self.delimiter = delimiter if delimiter is not None else ''
 
     @assert_node_types
     def set_part(self, part, idx: int):
@@ -36,12 +37,17 @@ class Node:
     def get_parts(self):
         return self.parts
 
+    def get_original(self):
+        return self.delimiter.join([p.get_original() if isinstance(p, Block) else p
+                                    for p in self.get_parts()])
+
     @assert_node_types
     def __add__(self, part):
         return Node(*(self.parts + [part]))
 
     def __repr__(self):
-        return ''.join([repr(p) if not isinstance(p, str) else p for p in self.parts])
+        return self.delimiter.join([repr(p) if not isinstance(p, str) else p
+                                    for p in self.parts])
 
     def __str__(self):
         return self.__repr__()
@@ -51,13 +57,16 @@ class Block:
     def __init__(self, original: str, pos: int, *nodes):
         self.original = original
         self.pos = pos
-        self.nodes = [self.original] + [Node(n) for n in nodes if not isinstance(n, Node)]
+        self.nodes = [Node(self.original)] + [Node(n) for n in nodes if not isinstance(n, Node)]
 
     def get_original(self):
         return self.original
 
     def get_pos(self):
         return self.pos
+
+    def get_nodes(self, skip_original: bool = False):
+        return self.nodes[skip_original:]
 
     def set_nodes(self, nodes: list):
         if all(isinstance((str, Block), node) for node in nodes):
@@ -87,7 +96,16 @@ class Block:
         return len(self.nodes)
 
     def __repr__(self):
-        return '{' + '|'.join([repr(node) for node in self.nodes]) + '}'
+        return '{' + '|'.join([str(node) for node in self.nodes]) + '}'
 
     def __str__(self):
         return self.__repr__()
+
+
+def main():
+    n = Node('abc', Block('efg', 2, 'EFG'), delimiter=' ')
+    print(n)
+
+
+if __name__ == '__main__':
+    main()

@@ -37,6 +37,9 @@ class Node:
     def get_parts(self):
         return self.parts
 
+    def get_blocks(self):
+        return [p for p in self.get_parts() if isinstance(p, Block)]
+
     def get_original(self):
         return self.delimiter.join([p.get_original() if isinstance(p, Block) else p
                                     for p in self.get_parts()])
@@ -65,12 +68,14 @@ class Block:
     def get_pos(self):
         return self.pos
 
+    def get_end(self):
+        return self.get_pos() + len(self.get_original())
+
     def get_nodes(self, skip_original: bool = False):
         return self.nodes[skip_original:]
 
     def set_nodes(self, nodes: list):
-        if all(isinstance((str, Block), node) for node in nodes):
-            self.nodes = nodes
+        self.nodes[1:] = [Node(n) if not isinstance(n, Node) else n for n in nodes]
 
     def set_node(self, idx: int, node):
         if 0 <= idx < len(self.nodes) and isinstance(node, (str, Block)):
@@ -78,6 +83,10 @@ class Block:
 
     def add_node(self, node):
         self.nodes.append(Node(node) if not isinstance(node, Node) else node)
+
+    def add_nodes(self, nodes):
+        for node in nodes:
+            self.add_node(node)
 
     # def set_start_pos(self, pos: int):
     #     self.start_pos = pos

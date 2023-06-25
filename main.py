@@ -1,103 +1,15 @@
 import sys
 
 from PyQt6.QtCore import Qt
-from PyQt6.QtGui import QTextCharFormat, QColor, QAction
-from PyQt6.QtWidgets import (QApplication, QMainWindow, QDialog,
-                             QLabel, QPlainTextEdit, QVBoxLayout, QDialogButtonBox, QHBoxLayout, QPushButton,
-                             QScrollBar, QScrollArea, QWidget)
+from PyQt6.QtGui import QTextCharFormat, QColor, QAction, QMouseEvent
+from PyQt6.QtWidgets import (QApplication, QMainWindow, QDialog, QPlainTextEdit,
+                             QVBoxLayout, QScrollArea, QWidget, QLabel, QDialogButtonBox)
 
-from block import Block
+from block import Block, Node
 from constants import PUNCTUATION, DEFAULT_FIELDS_COUNT
-from custom_classes import TextAppearance
+from custom_classes import *
 from ui.mainWindowUi import UiMainWindow
-from utils import load_cfg, get_extension
-
-
-class Alternatives(QDialog):
-    def __init__(self, parent: QMainWindow, block: Block):
-        super(Alternatives, self).__init__()
-        self.parent = parent
-        self.widget = QWidget()
-        layout = QVBoxLayout()
-        layout.addWidget(self.widget)
-        self.setWindowTitle('Alternatives')
-        self.vertical = QVBoxLayout()
-        self.info_label = QLabel('Выбранный блок:')
-        self.vertical.addWidget(self.info_label)
-        self.info_text = QPlainTextEdit()
-        self.info_text.setPlainText(block.get_original())
-        self.info_text.setReadOnly(True)
-        self.info_text.setMaximumHeight(self.height() // 11)
-        self.vertical.addWidget(self.info_text)
-        self.fields_count = (DEFAULT_FIELDS_COUNT
-                             if len(block) < DEFAULT_FIELDS_COUNT else len(block))
-        nodes = block.get_nodes(skip_original=True)
-        nodes_count = len(nodes)
-        self.fields = []
-        for i in range(self.fields_count):
-            field_vertical = QVBoxLayout()
-            field = QPlainTextEdit()
-            if i < nodes_count:
-                field.setPlainText(nodes[i].get_original())
-            field.setMaximumHeight(self.height() // 11)
-            field_vertical.addWidget(field)
-            btn = QPushButton('Delete')
-            btn.pressed.connect(lambda: self.delete_field(i))
-            self.vertical.addWidget(field)
-            self.vertical.addWidget(btn)
-            self.fields.append(field)
-        self.button_box = QDialogButtonBox()
-        self.button_box.setStandardButtons(
-            QDialogButtonBox.StandardButton.Cancel | QDialogButtonBox.StandardButton.Ok)
-        self.button_box.accepted.connect(self.accept)
-        self.button_box.rejected.connect(self.reject)
-        self.vertical.addWidget(self.button_box)
-
-        self.scroll = QScrollArea()
-        # self.scroll.setVerticalScrollBarPolicy(Qt.ScrollBarPolicy.ScrollBarAlwaysOn)
-        # self.scroll.setHorizontalScrollBarPolicy(Qt.ScrollBarPolicy.ScrollBarAlwaysOff)
-        # self.scroll.setWidgetResizable(True)
-
-        # self.scroll_area.setLayout(self.vertical)
-        self.widget.setLayout(self.vertical)
-        self.scroll.setWidget(self.widget)
-        self.setLayout(layout)
-
-    def delete_field(self, idx: int):
-        btn = self.sender()
-        self.vertical.removeWidget(btn)
-        self.fields[idx].destroy()
-        # layout.removeWidget(field)
-        # idx = self.fields.index(field)
-        # print(f'{idx=}')
-        # self.fields[idx].deleteLater()
-
-    def accept(self):
-        fields = [self.info_text] + self.fields
-        for i in range(len(fields)):
-            for j in range(len(fields)):
-                if i == j:
-                    continue
-
-        self.close()
-
-    def reject(self):
-        ...
-        super(Alternatives, self).reject()
-
-
-class Blocks(QDialog):
-    def __init__(self, blocks: list):
-        super(Blocks, self).__init__()
-        self.setWindowTitle('Блоки')
-        self.vertical = QVBoxLayout()
-        for block in blocks:
-            text = QPlainTextEdit()
-            text.setPlainText(str(block))
-            text.setMaximumHeight(self.height() // 10)
-            text.setReadOnly(True)
-            self.vertical.addWidget(text)
-        self.setLayout(self.vertical)
+from utils import load_cfg, get_extension, safe_get
 
 
 class Window(QMainWindow, UiMainWindow):
@@ -179,7 +91,10 @@ class Window(QMainWindow, UiMainWindow):
             idx = len(self.blocks) - 1
         self.blocks_chronology.append(idx)
         self.repaint()
-        self.alternative_wnd = Alternatives(self, cur_block)
+        self.show_block(cur_block)
+
+    def show_block(self, block: Block):
+        self.alternative_wnd = Alternatives(self, block)
         self.alternative_wnd.exec()
 
     def repaint(self):
@@ -215,6 +130,133 @@ class Window(QMainWindow, UiMainWindow):
         while 0 < pos < ch_count and doc.characterAt(pos) == ' ':
             pos += step
         return pos
+
+
+class Alternatives(QDialog):
+    def __init__(self, parent: Window, block: Block):
+        super(Alternatives, self).__init__()
+        self.parent = parent
+        self.block = block
+        self.deleteBlockOnClose = not bool(block.get_nodes(skip_original=True))
+
+        self.resize(int(parent.width() * 0.5), int(parent.height() * 0.6))
+        self.setWindowTitle('Alternatives')
+        mainLayout = QVBoxLayout()
+        scroll_area = QScrollArea()
+        scroll_area.setContentsMargins(0, 0, 0, 0)
+        self.widget = QWidget()
+        self.layout = QVBoxLayout(self.widget)
+        head = QVBoxLayout()
+        head.addWidget(QLabel('Выбранный блок'))
+        self.infoText = QPlainTextEdit(block.get_original())
+        self.infoText.setMaximumHeight(self.height() // 7)
+        self.infoText.setReadOnly(True)
+        head.addWidget(self.infoText)
+        head.setSpacing(5)
+        self.layout.addLayout(head)
+        self.layout.setSpacing(20)
+        self.fields_count = (DEFAULT_FIELDS_COUNT
+                             if len(block) < DEFAULT_FIELDS_COUNT else len(block))
+        nodes = block.get_nodes(skip_original=True)
+        nodes_count = len(nodes)
+        self.fields = []
+        for i in range(self.fields_count):
+            fieldVertical = QVBoxLayout()
+            field = QPlainTextEdit()
+            if i < nodes_count:
+                field.setPlainText(nodes[i].get_original())
+            field.setMaximumHeight(self.height() // 11)
+            btn = FieldButton(field, 'Delete')
+            btn.pressed.connect(self.deleteField)
+            fieldVertical.addWidget(field)
+            fieldVertical.addWidget(btn)
+            fieldVertical.setSpacing(5)
+            self.layout.addLayout(fieldVertical)
+            self.fields.append(field)
+        self.widget.setLayout(self.layout)
+        scroll_area.setWidget(self.widget)
+        scroll_area.setAlignment(Qt.AlignmentFlag.AlignCenter)
+        mainLayout.addWidget(scroll_area)
+        buttonBox = QDialogButtonBox()
+        buttonBox.setOrientation(Qt.Orientation.Horizontal)
+        buttonBox.setStandardButtons(
+            QDialogButtonBox.StandardButton.Cancel | QDialogButtonBox.StandardButton.Ok)
+        mainLayout.addWidget(buttonBox)
+        buttonBox.accepted.connect(self.accept)
+        buttonBox.rejected.connect(self.reject)
+        self.setLayout(mainLayout)
+        self.painted = []
+
+    def deleteField(self):
+        btn: FieldButton = self.sender()
+        field = btn.field()
+        btn.deleteLater()
+        field.deleteLater()
+        self.widget.adjustSize()
+        self.repaintFields()
+
+    def accept(self):
+        self.repaintFields()
+        fields = [self.infoText] + self.fields
+        nodes = self.block.get_nodes(skip_original=True)
+        if len(nodes) == 3:
+            pass
+        emptyAlternatives = True
+        nodesOffset = 1
+        for i in range(len(fields)):
+            text = fields[i].toPlainText()
+            if i > 0:
+                prevNode = safe_get(nodes, i - nodesOffset)
+                if text:
+                    emptyAlternatives = False
+                    if prevNode is None:
+                        nodes.append(Node(text, delimiter=' '))
+                    elif text != prevNode.get_original():
+                        nodes[i - nodesOffset] = Node(text, delimiter=' ')
+                elif prevNode is not None and prevNode.get_original():
+                    del nodes[i - nodesOffset]
+                    nodesOffset += 1
+            for j in range(i + 1, len(fields)):
+                if i != j and text == fields[j].toPlainText() != '':
+                    fields[i].setStyleSheet('background: red')
+                    fields[j].setStyleSheet('background: red')
+                    self.painted += [i, j]
+                    break
+            else:
+                continue
+            break
+        else:
+            self.deleteBlockOnClose = emptyAlternatives
+            if not emptyAlternatives and nodes:
+                self.block.set_nodes(nodes)
+            self.close()
+
+    def reject(self):
+        if self.deleteBlockOnClose:
+            self.parent.blocks.remove(self.block)
+            self.parent.repaint()
+        super(Alternatives, self).reject()
+
+    def repaintFields(self):
+        if not self.painted:
+            return
+        fields = [self.infoText] + self.fields
+        for idx in self.painted:
+            fields[idx].setStyleSheet('')
+
+
+class Blocks(QDialog):
+    def __init__(self, blocks: list):
+        super(Blocks, self).__init__()
+        self.setWindowTitle('Блоки')
+        self.vertical = QVBoxLayout()
+        for block in blocks:
+            text = QPlainTextEdit()
+            text.setPlainText(str(block))
+            text.setMaximumHeight(self.height() // 10)
+            text.setReadOnly(True)
+            self.vertical.addWidget(text)
+        self.setLayout(self.vertical)
 
 
 def main():

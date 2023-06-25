@@ -18,3 +18,10 @@ def load_cfg(window: QMainWindow, filename: str = 'cfg.txt'):
 
 def get_extension(filename: str):
     return filename.split('.')[-1]
+
+
+def safe_get(lst: list, idx, default=None):
+    try:
+        return lst[idx]
+    except IndexError:
+        return default

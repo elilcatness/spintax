@@ -1,5 +1,7 @@
 from PyQt6 import QtCore, QtGui, QtWidgets
 
+from custom_classes import InputTextField
+
 
 class UiMainWindow:
     centralwidget = None
@@ -16,7 +18,7 @@ class UiMainWindow:
         MainWindow.resize(825, 625)
         self.centralwidget = QtWidgets.QWidget(parent=MainWindow)
         self.centralwidget.setObjectName("centralwidget")
-        self.inp_text = QtWidgets.QPlainTextEdit(parent=self.centralwidget)
+        self.inp_text = InputTextField(MainWindow, parent=self.centralwidget)
         self.outp_text = QtWidgets.QPlainTextEdit(parent=self.centralwidget)
         self.vertical = QtWidgets.QVBoxLayout()
         self.vertical.addWidget(self.inp_text)

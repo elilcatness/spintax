@@ -190,8 +190,17 @@ class Alternatives(QDialog):
     def deleteField(self):
         btn: FieldButton = self.sender()
         field = btn.field()
+        idx = self.fields.index(field)
+        nodes = self.block.get_nodes()
+        node = safe_get(nodes, idx)
+        if node is not None and node.get_original():
+            del nodes[idx], node
         btn.deleteLater()
         field.deleteLater()
+        del self.fields[idx], field, btn
+        if not self.fields:
+            self.deleteBlockOnClose = True
+            self.reject()
         self.widget.adjustSize()
         self.repaintFields()
 

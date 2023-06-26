@@ -1,12 +1,13 @@
 import sys
 
 from PyQt6.QtCore import Qt
-from PyQt6.QtGui import QTextCharFormat, QColor, QAction, QMouseEvent
+from PyQt6.QtGui import QTextCharFormat, QColor, QAction
 from PyQt6.QtWidgets import (QApplication, QMainWindow, QDialog, QPlainTextEdit,
-                             QVBoxLayout, QScrollArea, QWidget, QLabel, QDialogButtonBox)
+                             QVBoxLayout, QScrollArea, QWidget, QLabel, QDialogButtonBox,
+                             QInputDialog, QPushButton, QStatusBar, QSizePolicy)
 
 from block import Block, Node
-from constants import PUNCTUATION, DEFAULT_FIELDS_COUNT
+from constants import PUNCTUATION, DEFAULT_FIELDS_COUNT, MAX_FIELDS_COUNT
 from custom_classes import *
 from ui.mainWindowUi import UiMainWindow
 from utils import load_cfg, get_extension, safe_get
@@ -133,7 +134,7 @@ class Window(QMainWindow, UiMainWindow):
 
 
 class Alternatives(QDialog):
-    def __init__(self, parent: Window, block: Block):
+    def __init__(self, parent: Window, block: Block, fieldsCount: int = DEFAULT_FIELDS_COUNT):
         super(Alternatives, self).__init__()
         self.parent = parent
         self.block = block
@@ -141,51 +142,106 @@ class Alternatives(QDialog):
 
         self.resize(int(parent.width() * 0.5), int(parent.height() * 0.6))
         self.setWindowTitle('Alternatives')
-        mainLayout = QVBoxLayout()
-        scroll_area = QScrollArea()
-        scroll_area.setContentsMargins(0, 0, 0, 0)
+        self.mainLayout = QVBoxLayout()
+        self.scrollArea = QScrollArea()
+        self.scrollArea.setContentsMargins(0, 0, 0, 0)
+
+        self.widget = None
+        self.layout = None
+        self.infoText = None
+        self.fields = []
+        self.addFieldsBtn = None
+
+        self.initWidget(fieldsCount)
+        # self.widget = QWidget()
+        # self.layout = QVBoxLayout(self.widget)
+        # head = QVBoxLayout()
+        # head.addWidget(QLabel('Выбранный блок'))
+        # self.infoText = QPlainTextEdit(block.get_original())
+        # self.infoText.setMinimumHeight(self.height() // 7)
+        # self.infoText.setMaximumHeight(self.height() // 7)
+        # self.infoText.setReadOnly(True)
+        # head.addWidget(self.infoText)
+        # head.setSpacing(5)
+        # self.layout.addLayout(head)
+        # self.layout.setSpacing(20)
+        # self.fields_count = (fieldsCount if len(block) < fieldsCount else len(block))
+        # nodes = block.get_nodes(skip_original=True)
+        # self.fields, self.verticals = [], []
+        # for i in range(self.fields_count):
+        #     node = safe_get(nodes, i)
+        #     self.addField(node.get_original() if node and node.get_original() else None,
+        #                   ignoreBtn=True)
+        # self.addFieldsBtn = QPushButton('Добавить поля')
+        # self.addFieldsBtn.pressed.connect(self.addFields)
+        # self.layout.addWidget(self.addFieldsBtn)
+        # self.widget.setLayout(self.layout)
+        # self.scrollArea.setWidget(self.widget)
+        self.scrollArea.setAlignment(Qt.AlignmentFlag.AlignCenter)
+        self.mainLayout.addWidget(self.scrollArea)
+
+        buttonBox = QDialogButtonBox()
+        buttonBox.setOrientation(Qt.Orientation.Horizontal)
+        buttonBox.setStandardButtons(
+            QDialogButtonBox.StandardButton.Cancel | QDialogButtonBox.StandardButton.Ok)
+        self.mainLayout.addWidget(buttonBox)
+        buttonBox.accepted.connect(self.accept)
+        buttonBox.rejected.connect(self.reject)
+        statusBar = QStatusBar()
+        self.statusLabel = QLabel()
+        statusBar.addWidget(self.statusLabel)
+        statusBar.setSizeGripEnabled(False)
+        self.mainLayout.addWidget(statusBar)
+        self.setLayout(self.mainLayout)
+        self.painted = []
+
+    def initWidget(self, fieldsCount: int, scrollToBottom: bool = False):
+        for obj in self.widget, self.layout, self.infoText:
+            if obj:
+                del obj
         self.widget = QWidget()
         self.layout = QVBoxLayout(self.widget)
         head = QVBoxLayout()
         head.addWidget(QLabel('Выбранный блок'))
-        self.infoText = QPlainTextEdit(block.get_original())
+        self.infoText = QPlainTextEdit(self.block.get_original())
+        self.infoText.setMinimumHeight(self.height() // 7)
         self.infoText.setMaximumHeight(self.height() // 7)
         self.infoText.setReadOnly(True)
         head.addWidget(self.infoText)
         head.setSpacing(5)
         self.layout.addLayout(head)
         self.layout.setSpacing(20)
-        self.fields_count = (DEFAULT_FIELDS_COUNT
-                             if len(block) < DEFAULT_FIELDS_COUNT else len(block))
-        nodes = block.get_nodes(skip_original=True)
-        nodes_count = len(nodes)
-        self.fields = []
-        for i in range(self.fields_count):
+        # print(fieldsCount, end=' ')
+        nodesCount = len(self.block) - 1
+        fieldsCount = fieldsCount if nodesCount < fieldsCount else nodesCount
+        nodes = self.block.get_nodes(skip_original=True)
+        # print(fieldsCount)
+        for i in range(fieldsCount):
             fieldVertical = QVBoxLayout()
-            field = QPlainTextEdit()
-            if i < nodes_count:
-                field.setPlainText(nodes[i].get_original())
-            field.setMaximumHeight(self.height() // 11)
+            field = safe_get(self.fields, i)
+            usePrevField = field is not None
+            if not usePrevField:
+                field = QPlainTextEdit()
+                node = safe_get(nodes, i)
+                if node is not None and node.get_original():
+                    field.setPlainText(node.get_original())
+                field.setMaximumHeight(self.height() // 11)
+                self.fields.append(field)
             btn = FieldButton(field, 'Delete')
+            btn.setStyleSheet('background: #FA5F55')
             btn.pressed.connect(self.deleteField)
             fieldVertical.addWidget(field)
             fieldVertical.addWidget(btn)
             fieldVertical.setSpacing(5)
             self.layout.addLayout(fieldVertical)
-            self.fields.append(field)
+        self.addFieldsBtn = QPushButton('Добавить поля')
+        self.addFieldsBtn.pressed.connect(self.addFields)
+        self.layout.addWidget(self.addFieldsBtn)
         self.widget.setLayout(self.layout)
-        scroll_area.setWidget(self.widget)
-        scroll_area.setAlignment(Qt.AlignmentFlag.AlignCenter)
-        mainLayout.addWidget(scroll_area)
-        buttonBox = QDialogButtonBox()
-        buttonBox.setOrientation(Qt.Orientation.Horizontal)
-        buttonBox.setStandardButtons(
-            QDialogButtonBox.StandardButton.Cancel | QDialogButtonBox.StandardButton.Ok)
-        mainLayout.addWidget(buttonBox)
-        buttonBox.accepted.connect(self.accept)
-        buttonBox.rejected.connect(self.reject)
-        self.setLayout(mainLayout)
-        self.painted = []
+        self.scrollArea.setWidget(self.widget)
+        if scrollToBottom:
+            scrollBar = self.scrollArea.verticalScrollBar()
+            scrollBar.setValue(scrollBar.maximum())
 
     def deleteField(self):
         btn: FieldButton = self.sender()
@@ -195,14 +251,39 @@ class Alternatives(QDialog):
         node = safe_get(nodes, idx)
         if node is not None and node.get_original():
             del nodes[idx], node
-        btn.deleteLater()
-        field.deleteLater()
-        del self.fields[idx], field, btn
+        self.fields.pop(idx).destroy()
+        btn.destroy()
         if not self.fields:
             self.deleteBlockOnClose = True
             self.reject()
-        self.widget.adjustSize()
-        self.repaintFields()
+        self.initWidget(len(self.fields))
+        self.statusLabel.setText(f'Поле #{idx + 1} удалено')
+
+    # def addField(self, text: str = None):
+    #     self.initWidget(len(self.fields) + 1)
+    #     # if not ignoreBtn:
+    #     #     self.layout.removeWidget(self.addFieldsBtn)
+    #     #     self.layout.addLayout(fieldVertical)
+    #     #     self.layout.addWidget(self.addFieldsBtn)
+    #     # else:
+    #     #     self.layout.addLayout(fieldVertical)
+    #     # scrollBar = self.scrollArea.verticalScrollBar()
+    #     # scrollBar.setValue(scrollBar.maximum())
+    #     # field.adjustSize()
+    #     # self.widget.adjustSize()
+
+    def addFields(self):
+        possibleCount = MAX_FIELDS_COUNT - len(self.fields)
+        if possibleCount < 1:
+            return self.statusLabel.setText('Больше полей нельзя добавить')
+        fieldsCount, ok = QInputDialog.getInt(
+            self, 'Add fields', 'Введите количество полей:', min=1, max=possibleCount)
+        if not ok:
+            return
+        self.initWidget(len(self.fields) + fieldsCount, scrollToBottom=True)
+        # for _ in range(fieldsCount):
+        #     self.addField()
+        self.statusLabel.setText(f'Добавлено полей: {fieldsCount}')
 
     def accept(self):
         self.repaintFields()

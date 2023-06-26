@@ -145,6 +145,7 @@ class Alternatives(QDialog):
         self.mainLayout = QVBoxLayout()
         self.scrollArea = QScrollArea()
         self.scrollArea.setContentsMargins(0, 0, 0, 0)
+        self.scrollBar = self.scrollArea.verticalScrollBar()
 
         self.widget = None
         self.layout = None
@@ -195,7 +196,8 @@ class Alternatives(QDialog):
         self.setLayout(self.mainLayout)
         self.painted = []
 
-    def initWidget(self, fieldsCount: int, scrollToBottom: bool = False):
+    def initWidget(self, fieldsCount: int, scrollToBottom: bool = False,
+                   scrollToField: int = None):
         for obj in self.widget, self.layout, self.infoText:
             if obj:
                 del obj
@@ -240,8 +242,10 @@ class Alternatives(QDialog):
         self.widget.setLayout(self.layout)
         self.scrollArea.setWidget(self.widget)
         if scrollToBottom:
-            scrollBar = self.scrollArea.verticalScrollBar()
-            scrollBar.setValue(scrollBar.maximum())
+            self.scrollBar.setValue(self.scrollBar.maximum())
+        elif scrollToField is not None and fieldsCount:
+            scrollFieldValue = self.scrollBar.maximum() // fieldsCount
+            self.scrollBar.setValue(int(scrollToField * scrollFieldValue * 1.25))
 
     def deleteField(self):
         btn: FieldButton = self.sender()
@@ -256,7 +260,8 @@ class Alternatives(QDialog):
         if not self.fields:
             self.deleteBlockOnClose = True
             self.reject()
-        self.initWidget(len(self.fields))
+        else:
+            self.initWidget(len(self.fields), scrollToField=idx)
         self.statusLabel.setText(f'Поле #{idx + 1} удалено')
 
     # def addField(self, text: str = None):

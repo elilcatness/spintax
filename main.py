@@ -8,9 +8,9 @@ from PyQt6.QtWidgets import (QApplication, QMainWindow, QDialog, QPlainTextEdit,
 
 from block import Block, Node
 from constants import PUNCTUATION, DEFAULT_FIELDS_COUNT, MAX_FIELDS_COUNT
-from custom_classes import *
+from customClasses import *
 from ui.mainWindowUi import UiMainWindow
-from utils import load_cfg, get_extension, safe_get
+from utils import loadCfg, getExtension, safeGet
 
 
 class Window(QMainWindow, UiMainWindow):
@@ -21,43 +21,43 @@ class Window(QMainWindow, UiMainWindow):
         super(Window, self).__init__(*args, **kwargs)
         self.setupUi(self)
         self.setWindowTitle('Spintax')
-        self.inp_text.selectionChanged.connect(self.handle_selection)
-        self.cancel_action = QAction()
-        self.cancel_action.setShortcut('Ctrl+Z')
-        self.cancel_action.triggered.connect(self.cancel_block)
-        self.inp_text.addAction(self.cancel_action)
-        self.text_appearance = TextAppearance()
-        self.text_appearance.connect(self.highlight_text)
+        self.inpText.selectionChanged.connect(self.handleSelection)
+        self.cancelAction = QAction()
+        self.cancelAction.setShortcut('Ctrl+Z')
+        self.cancelAction.triggered.connect(self.cancelBlock)
+        self.inpText.addAction(self.cancelAction)
+        self.txtAppear = TextAppearance()
+        self.txtAppear.connect(self.highlightText)
         self.alternative_wnd = None
         self.blocks = []
-        self.blocks_chronology = []
-        self.load_text(self.filename)
-        self.inp_text.setReadOnly(True)
+        self.blocksChronology = []
+        self.loadText(self.filename)
+        self.inpText.setReadOnly(True)
 
-        self.blocks_action.triggered.connect(self.show_blocks)
-        self.view_menu.addAction(self.blocks_action)
+        self.blocksAction.triggered.connect(self.showBlocks)
+        self.viewMenu.addAction(self.blocksAction)
 
-    def load_text(self, filename: str):
-        ext = get_extension(filename)
+    def loadText(self, filename: str):
+        ext = getExtension(filename)
         if ext == 'txt':
             with open(filename, encoding='utf-8') as f:
-                self.inp_text.insertPlainText(f.read())
+                self.inpText.insertPlainText(f.read())
         elif ext in ('docx', 'doc'):
             pass
         else:
             raise Exception(f'Invalid extension of {filename}')
 
-    def handle_selection(self):
-        if self.text_appearance.is_active():
-            self.text_appearance.stop()
-        self.text_appearance.start()
+    def handleSelection(self):
+        if self.txtAppear.is_active():
+            self.txtAppear.stop()
+        self.txtAppear.start()
 
-    def highlight_text(self):
-        cursor = self.inp_text.textCursor()
+    def highlightText(self):
+        cursor = self.inpText.textCursor()
         if not cursor.hasSelection():
             return
-        doc = self.inp_text.document()
-        chars_count = self.inp_text.document().characterCount()
+        doc = self.inpText.document()
+        chars_count = self.inpText.document().characterCount()
         edges = [cursor.selectionStart(), cursor.selectionEnd()]
         prev_edges = edges[:]
         for i, step in enumerate(range(-1, 2, 2)):
@@ -72,7 +72,7 @@ class Window(QMainWindow, UiMainWindow):
             if cursor.charFormat().background().color().getRgb() != (0, 0, 0, 255):
                 # print('clearSelection')
                 cursor.clearSelection()
-                self.inp_text.setTextCursor(cursor)
+                self.inpText.setTextCursor(cursor)
                 return
         # print()
         start, end = edges
@@ -80,28 +80,28 @@ class Window(QMainWindow, UiMainWindow):
         cursor.setPosition(end, cursor.MoveMode.KeepAnchor)
         text = cursor.selectedText()
         cursor.clearSelection()
-        self.inp_text.setTextCursor(cursor)
+        self.inpText.setTextCursor(cursor)
         cur_block = Block(text, start)
         for i in range(len(self.blocks)):
-            if start < self.blocks[i].get_pos():
+            if start < self.blocks[i].getPos():
                 self.blocks.insert(i, cur_block)
                 idx = i
                 break
         else:
             self.blocks.append(cur_block)
             idx = len(self.blocks) - 1
-        self.blocks_chronology.append(idx)
+        self.blocksChronology.append(idx)
         self.repaint()
-        self.show_block(cur_block)
+        self.showBlock(cur_block)
 
-    def show_block(self, block: Block):
+    def showBlock(self, block: Block):
         self.alternative_wnd = Alternatives(self, block)
         self.alternative_wnd.exec()
 
     def repaint(self):
-        cursor = self.inp_text.textCursor()
+        cursor = self.inpText.textCursor()
         cursor.setPosition(0)
-        cursor.setPosition(self.inp_text.document().characterCount() - 1,
+        cursor.setPosition(self.inpText.document().characterCount() - 1,
                            cursor.MoveMode.KeepAnchor)
         cursor.setCharFormat(QTextCharFormat())
         cursor.clearSelection()
@@ -110,23 +110,23 @@ class Window(QMainWindow, UiMainWindow):
         for i in range(len(self.blocks)):
             fmt = QTextCharFormat()
             fmt.setBackground(QColor(self.colors[i % 2]))
-            pos = self.blocks[i].get_pos()
+            pos = self.blocks[i].getPos()
             cursor.setPosition(pos)
-            cursor.setPosition(pos + len(self.blocks[i].get_original()),
+            cursor.setPosition(pos + len(self.blocks[i].getOriginal()),
                                cursor.MoveMode.KeepAnchor)
             cursor.mergeCharFormat(fmt)
             cursor.clearSelection()
 
-    def show_blocks(self):
+    def showBlocks(self):
         blocks_wnd = Blocks(self.blocks)
         blocks_wnd.exec()
 
-    def cancel_block(self):
-        self.blocks.pop(self.blocks_chronology.pop())
+    def cancelBlock(self):
+        self.blocks.pop(self.blocksChronology.pop())
         self.repaint()
 
     @staticmethod
-    def _skip_spaces(doc, pos: int, step: int = 1):
+    def _skipSpaces(doc, pos: int, step: int = 1):
         ch_count = doc.characterCount()
         while 0 < pos < ch_count and doc.characterAt(pos) == ' ':
             pos += step
@@ -138,7 +138,7 @@ class Alternatives(QDialog):
         super(Alternatives, self).__init__()
         self.parent = parent
         self.block = block
-        self.deleteBlockOnClose = not bool(block.get_nodes(skip_original=True))
+        self.deleteBlockOnClose = not bool(block.getNodes(skip_original=True))
 
         self.resize(int(parent.width() * 0.5), int(parent.height() * 0.6))
         self.setWindowTitle('Alternatives')
@@ -154,30 +154,6 @@ class Alternatives(QDialog):
         self.addFieldsBtn = None
 
         self.initWidget(fieldsCount)
-        # self.widget = QWidget()
-        # self.layout = QVBoxLayout(self.widget)
-        # head = QVBoxLayout()
-        # head.addWidget(QLabel('Выбранный блок'))
-        # self.infoText = QPlainTextEdit(block.get_original())
-        # self.infoText.setMinimumHeight(self.height() // 7)
-        # self.infoText.setMaximumHeight(self.height() // 7)
-        # self.infoText.setReadOnly(True)
-        # head.addWidget(self.infoText)
-        # head.setSpacing(5)
-        # self.layout.addLayout(head)
-        # self.layout.setSpacing(20)
-        # self.fields_count = (fieldsCount if len(block) < fieldsCount else len(block))
-        # nodes = block.get_nodes(skip_original=True)
-        # self.fields, self.verticals = [], []
-        # for i in range(self.fields_count):
-        #     node = safe_get(nodes, i)
-        #     self.addField(node.get_original() if node and node.get_original() else None,
-        #                   ignoreBtn=True)
-        # self.addFieldsBtn = QPushButton('Добавить поля')
-        # self.addFieldsBtn.pressed.connect(self.addFields)
-        # self.layout.addWidget(self.addFieldsBtn)
-        # self.widget.setLayout(self.layout)
-        # self.scrollArea.setWidget(self.widget)
         self.scrollArea.setAlignment(Qt.AlignmentFlag.AlignCenter)
         self.mainLayout.addWidget(self.scrollArea)
 
@@ -205,7 +181,7 @@ class Alternatives(QDialog):
         self.layout = QVBoxLayout(self.widget)
         head = QVBoxLayout()
         head.addWidget(QLabel('Выбранный блок'))
-        self.infoText = QPlainTextEdit(self.block.get_original())
+        self.infoText = QPlainTextEdit(self.block.getOriginal())
         self.infoText.setMinimumHeight(self.height() // 7)
         self.infoText.setMaximumHeight(self.height() // 7)
         self.infoText.setReadOnly(True)
@@ -213,20 +189,18 @@ class Alternatives(QDialog):
         head.setSpacing(5)
         self.layout.addLayout(head)
         self.layout.setSpacing(20)
-        # print(fieldsCount, end=' ')
         nodesCount = len(self.block) - 1
         fieldsCount = fieldsCount if nodesCount < fieldsCount else nodesCount
-        nodes = self.block.get_nodes(skip_original=True)
-        # print(fieldsCount)
+        nodes = self.block.getNodes(skip_original=True)
         for i in range(fieldsCount):
             fieldVertical = QVBoxLayout()
-            field = safe_get(self.fields, i)
+            field = safeGet(self.fields, i)
             usePrevField = field is not None
             if not usePrevField:
                 field = QPlainTextEdit()
-                node = safe_get(nodes, i)
-                if node is not None and node.get_original():
-                    field.setPlainText(node.get_original())
+                node = safeGet(nodes, i)
+                if node is not None and node.getOriginal():
+                    field.setPlainText(node.getOriginal())
                 field.setMaximumHeight(self.height() // 11)
                 self.fields.append(field)
             btn = FieldButton(field, 'Delete')
@@ -251,9 +225,9 @@ class Alternatives(QDialog):
         btn: FieldButton = self.sender()
         field = btn.field()
         idx = self.fields.index(field)
-        nodes = self.block.get_nodes()
-        node = safe_get(nodes, idx)
-        if node is not None and node.get_original():
+        nodes = self.block.getNodes()
+        node = safeGet(nodes, idx)
+        if node is not None and node.getOriginal():
             del nodes[idx], node
         self.fields.pop(idx).destroy()
         btn.destroy()
@@ -263,19 +237,6 @@ class Alternatives(QDialog):
         else:
             self.initWidget(len(self.fields), scrollToField=idx)
         self.statusLabel.setText(f'Поле #{idx + 1} удалено')
-
-    # def addField(self, text: str = None):
-    #     self.initWidget(len(self.fields) + 1)
-    #     # if not ignoreBtn:
-    #     #     self.layout.removeWidget(self.addFieldsBtn)
-    #     #     self.layout.addLayout(fieldVertical)
-    #     #     self.layout.addWidget(self.addFieldsBtn)
-    #     # else:
-    #     #     self.layout.addLayout(fieldVertical)
-    #     # scrollBar = self.scrollArea.verticalScrollBar()
-    #     # scrollBar.setValue(scrollBar.maximum())
-    #     # field.adjustSize()
-    #     # self.widget.adjustSize()
 
     def addFields(self):
         possibleCount = MAX_FIELDS_COUNT - len(self.fields)
@@ -293,7 +254,7 @@ class Alternatives(QDialog):
     def accept(self):
         self.repaintFields()
         fields = [self.infoText] + self.fields
-        nodes = self.block.get_nodes(skip_original=True)
+        nodes = self.block.getNodes(skip_original=True)
         if len(nodes) == 3:
             pass
         emptyAlternatives = True
@@ -301,14 +262,14 @@ class Alternatives(QDialog):
         for i in range(len(fields)):
             text = fields[i].toPlainText()
             if i > 0:
-                prevNode = safe_get(nodes, i - nodesOffset)
+                prevNode = safeGet(nodes, i - nodesOffset)
                 if text:
                     emptyAlternatives = False
                     if prevNode is None:
                         nodes.append(Node(text, delimiter=' '))
-                    elif text != prevNode.get_original():
+                    elif text != prevNode.getOriginal():
                         nodes[i - nodesOffset] = Node(text, delimiter=' ')
-                elif prevNode is not None and prevNode.get_original():
+                elif prevNode is not None and prevNode.getOriginal():
                     del nodes[i - nodesOffset]
                     nodesOffset += 1
             for j in range(i + 1, len(fields)):
@@ -323,7 +284,7 @@ class Alternatives(QDialog):
         else:
             self.deleteBlockOnClose = emptyAlternatives
             if not emptyAlternatives and nodes:
-                self.block.set_nodes(nodes)
+                self.block.setNodes(nodes)
             self.close()
 
     def reject(self):
@@ -357,7 +318,7 @@ class Blocks(QDialog):
 def main():
     app = QApplication(sys.argv)
     window = Window()
-    load_cfg(window)
+    loadCfg(window)
     window.show()
     app.exec()
 

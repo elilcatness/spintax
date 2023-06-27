@@ -1,7 +1,7 @@
 from exceptions import NodeException
 
 
-def assert_node_types(func):
+def assertNodeTypes(func):
     def wrapper(obj, var, *args):
         if not isinstance(var, (str, Block)):
             raise NodeException('Invalid type')
@@ -17,34 +17,34 @@ class Node:
         self.parts = list(parts)
         self.delimiter = delimiter if delimiter is not None else ''
 
-    @assert_node_types
-    def set_part(self, part, idx: int):
+    @assertNodeTypes
+    def setPart(self, part, idx: int):
         if not isinstance(part, (str, Block)):
             raise NodeException(f'Invalid part type: {type(part)}')
         if not (0 <= idx < len(self.parts)):
             raise IndexError
         self.parts[idx] = part
 
-    def remove_part(self, idx: int):
+    def removePart(self, idx: int):
         if not (0 <= idx < len(self.parts)):
             raise IndexError
         self.parts.pop(idx)
 
-    @assert_node_types
-    def add_part(self, part):
+    @assertNodeTypes
+    def addPart(self, part):
         self.parts.append(part)
 
-    def get_parts(self):
+    def getParts(self):
         return self.parts
 
-    def get_blocks(self):
-        return [p for p in self.get_parts() if isinstance(p, Block)]
+    def getBlocks(self):
+        return [p for p in self.getParts() if isinstance(p, Block)]
 
-    def get_original(self):
-        return self.delimiter.join([p.get_original() if isinstance(p, Block) else p
-                                    for p in self.get_parts()])
+    def getOriginal(self):
+        return self.delimiter.join([p.getOriginal() if isinstance(p, Block) else p
+                                    for p in self.getParts()])
 
-    @assert_node_types
+    @assertNodeTypes
     def __add__(self, part):
         return Node(*(self.parts + [part]))
 
@@ -62,44 +62,34 @@ class Block:
         self.pos = pos
         self.nodes = [Node(self.original)] + [Node(n) for n in nodes if not isinstance(n, Node)]
 
-    def get_original(self):
+    def getOriginal(self):
         return self.original
 
-    def get_pos(self):
+    def getPos(self):
         return self.pos
 
-    def get_end(self):
-        return self.get_pos() + len(self.get_original())
+    def getEnd(self):
+        return self.getPos() + len(self.getOriginal())
 
-    def get_nodes(self, skip_original: bool = False):
+    def getNodes(self, skip_original: bool = False):
         return self.nodes[skip_original:]
 
-    def set_nodes(self, nodes: list):
+    def setNodes(self, nodes: list):
         self.nodes[1:] = [Node(n) if not isinstance(n, Node) else n for n in nodes]
 
-    def set_node(self, idx: int, node):
+    def setNode(self, idx: int, node):
         if 0 <= idx < len(self.nodes) and isinstance(node, (str, Block)):
             self.nodes[idx] = node
 
-    def add_node(self, node):
+    def addNode(self, node):
         self.nodes.append(Node(node) if not isinstance(node, Node) else node)
 
-    def add_nodes(self, nodes):
+    def addNodes(self, nodes):
         for node in nodes:
-            self.add_node(node)
+            self.addNode(node)
 
-    # def set_start_pos(self, pos: int):
-    #     self.start_pos = pos
-    #
-    # def set_end_pos(self, pos):
-    #     self.end_pos = pos
-
-    def get_chars_count(self):
+    def getCharsCount(self):
         return len(self.__repr__())
-
-    # def __add__(self, nodes):
-    #     if all(isinstance(node, (str, Block)) for node in nodes):
-    #         self.nodes.extend([node for node in nodes if node not in self.nodes])
 
     def __len__(self):
         return len(self.nodes)

@@ -1,7 +1,7 @@
 from PyQt6.QtWidgets import QMainWindow
 
 
-def load_cfg(window: QMainWindow, filename: str = 'cfg.txt'):
+def loadCfg(window: QMainWindow, filename: str = 'cfg.txt'):
     with open(filename, encoding='utf-8') as f:
         for line in f:
             try:
@@ -16,11 +16,11 @@ def load_cfg(window: QMainWindow, filename: str = 'cfg.txt'):
             setattr(window, attr, value)
 
 
-def get_extension(filename: str):
+def getExtension(filename: str):
     return filename.split('.')[-1]
 
 
-def safe_get(lst: list, idx, default=None):
+def safeGet(lst: list, idx, default=None):
     try:
         return lst[idx]
     except IndexError:

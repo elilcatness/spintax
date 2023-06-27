@@ -47,8 +47,8 @@ class InputTextField(QPlainTextEdit):
     def mousePressEvent(self, event: QMouseEvent):
         pos = self.cursorForPosition(event.pos()).position()
         for block in self.parent.blocks:
-            if block.get_pos() <= pos <= block.get_end():
-                self.parent.show_block(block)
+            if block.getPos() <= pos <= block.getEnd():
+                self.parent.showBlock(block)
         super(InputTextField, self).mousePressEvent(event)
 
 

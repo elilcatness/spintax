@@ -116,6 +116,9 @@ class Block:
         if 0 <= idx < len(self.nodes) and isinstance(node, (str, Block)):
             self.nodes[idx] = node
 
+    def removeNode(self, idx: int):
+        self.nodes.pop(idx)
+
     def addNode(self, node):
         self.nodes.append(Node(node) if not isinstance(node, Node) else node)
 

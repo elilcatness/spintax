@@ -48,6 +48,7 @@ class Window(QMainWindow, UiMainWindow):
         else:
             raise Exception(f'Invalid extension of {filename}')
         self.inpText.insertPlainText(text)
+        self.outpText.insertPlainText(text)
         self.node = Node(text)
 
     def handleSelection(self):
@@ -133,7 +134,6 @@ class Window(QMainWindow, UiMainWindow):
 class Alternatives(QDialog):
     def __init__(self, parent: Window, block: Block, fieldsCount: int = DEFAULT_FIELDS_COUNT):
         super(Alternatives, self).__init__()
-        print(parent.node.getParts())
         self.parent = parent
         self.block = block
         self.deleteBlockOnClose = not bool(block.getNodes(skip_original=True))
@@ -158,8 +158,12 @@ class Alternatives(QDialog):
         buttonBox = QDialogButtonBox()
         buttonBox.setOrientation(Qt.Orientation.Horizontal)
         buttonBox.setStandardButtons(
-            QDialogButtonBox.StandardButton.Cancel | QDialogButtonBox.StandardButton.Ok)
+            QDialogButtonBox.StandardButton.Cancel |
+            QDialogButtonBox.StandardButton.Discard |
+            QDialogButtonBox.StandardButton.Ok)
         self.mainLayout.addWidget(buttonBox)
+        discardBtn = buttonBox.button(QDialogButtonBox.StandardButton.Discard)
+        discardBtn.clicked.connect(self.discard)
         buttonBox.accepted.connect(self.accept)
         buttonBox.rejected.connect(self.reject)
         statusBar = QStatusBar()
@@ -219,21 +223,21 @@ class Alternatives(QDialog):
             scrollFieldValue = self.scrollBar.maximum() // fieldsCount
             self.scrollBar.setValue(int(scrollToField * scrollFieldValue * 1.25))
 
+    def discard(self):
+        self.deleteBlockOnClose = True
+        self.reject()
+
     def deleteField(self):
         btn: FieldButton = self.sender()
         field = btn.field()
         idx = self.fields.index(field)
-        nodes = self.block.getNodes()
-        node = safeGet(nodes, idx)
+        node = safeGet(self.block.getNodes(skip_original=True), idx)
         if node is not None and node.getOriginal():
-            del nodes[idx], node
+            self.block.removeNode(idx + 1)
         self.fields.pop(idx).destroy()
         btn.destroy()
-        if not self.fields:
-            self.deleteBlockOnClose = True
-            self.reject()
-        else:
-            self.initWidget(len(self.fields), scrollToField=idx)
+        self.discard() if not self.fields else self.initWidget(
+            len(self.fields), scrollToField=idx)
         self.statusLabel.setText(f'Поле #{idx + 1} удалено')
 
     def addFields(self):

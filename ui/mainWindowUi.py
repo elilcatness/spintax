@@ -20,6 +20,7 @@ class UiMainWindow:
         self.centralwidget.setObjectName("centralwidget")
         self.inpText = InputTextField(MainWindow, parent=self.centralwidget)
         self.outpText = QtWidgets.QPlainTextEdit(parent=self.centralwidget)
+        self.outpText.setReadOnly(True)
         self.vertical = QtWidgets.QVBoxLayout()
         self.vertical.addWidget(self.inpText)
         self.vertical.addWidget(self.outpText)

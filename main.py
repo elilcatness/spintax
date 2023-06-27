@@ -28,8 +28,9 @@ class Window(QMainWindow, UiMainWindow):
         self.inpText.addAction(self.cancelAction)
         self.txtAppear = TextAppearance()
         self.txtAppear.connect(self.highlightText)
-        self.alternative_wnd = None
-        self.blocks = []
+        self.alternativeWnd = None
+        self.node = None
+        # self.blocks = []
         self.blocksChronology = []
         self.loadText(self.filename)
         self.inpText.setReadOnly(True)
@@ -41,11 +42,13 @@ class Window(QMainWindow, UiMainWindow):
         ext = getExtension(filename)
         if ext == 'txt':
             with open(filename, encoding='utf-8') as f:
-                self.inpText.insertPlainText(f.read())
+                text = f.read()
         elif ext in ('docx', 'doc'):
             pass
         else:
             raise Exception(f'Invalid extension of {filename}')
+        self.inpText.insertPlainText(text)
+        self.node = Node(text)
 
     def handleSelection(self):
         if self.txtAppear.is_active():
@@ -57,46 +60,38 @@ class Window(QMainWindow, UiMainWindow):
         if not cursor.hasSelection():
             return
         doc = self.inpText.document()
-        chars_count = self.inpText.document().characterCount()
+        charsCount = self.inpText.document().characterCount()
         edges = [cursor.selectionStart(), cursor.selectionEnd()]
-        prev_edges = edges[:]
+        prevEdges = edges[:]
         for i, step in enumerate(range(-1, 2, 2)):
-            while doc.characterAt(edges[i]) not in PUNCTUATION and 0 < edges[i] < chars_count:
+            while doc.characterAt(edges[i]) not in PUNCTUATION and 0 < edges[i] < charsCount:
                 edges[i] += step
         edges[0] = edges[0] + 1 if edges[0] > 0 else 0
-        edges[1] = edges[1] - 1 if edges[1] == chars_count else edges[1]
-        # print(edges)
-        for pos in edges + prev_edges + [edges[0] + 1]:
+        edges[1] = edges[1] - 1 if edges[1] == charsCount else edges[1]
+        for pos in range(min(min(prevEdges), min(edges)), max(max(prevEdges), max(edges))):
             cursor.setPosition(pos)
-            # print(f'pos: {pos}, color: {cursor.charFormat().background().color().getRgb()}')
             if cursor.charFormat().background().color().getRgb() != (0, 0, 0, 255):
-                # print('clearSelection')
                 cursor.clearSelection()
                 self.inpText.setTextCursor(cursor)
                 return
-        # print()
         start, end = edges
         cursor.setPosition(start)
         cursor.setPosition(end, cursor.MoveMode.KeepAnchor)
         text = cursor.selectedText()
         cursor.clearSelection()
         self.inpText.setTextCursor(cursor)
-        cur_block = Block(text, start)
-        for i in range(len(self.blocks)):
-            if start < self.blocks[i].getPos():
-                self.blocks.insert(i, cur_block)
-                idx = i
-                break
-        else:
-            self.blocks.append(cur_block)
-            idx = len(self.blocks) - 1
-        self.blocksChronology.append(idx)
+        curBlock = Block(text, start)
+        self.node.insertBlock(curBlock)
+        try:
+            self.blocksChronology.append(self.node.getBlocks().index(curBlock))
+        except ValueError:
+            pass
         self.repaint()
-        self.showBlock(cur_block)
+        self.showBlock(curBlock)
 
     def showBlock(self, block: Block):
-        self.alternative_wnd = Alternatives(self, block)
-        self.alternative_wnd.exec()
+        self.alternativeWnd = Alternatives(self, block)
+        self.alternativeWnd.exec()
 
     def repaint(self):
         cursor = self.inpText.textCursor()
@@ -107,22 +102,24 @@ class Window(QMainWindow, UiMainWindow):
         cursor.clearSelection()
         # self.inp_text.setTextCursor(cursor)
         # cursor = self.inp_text.textCursor()
-        for i in range(len(self.blocks)):
+        blocks = self.node.getBlocks()
+        for i in range(len(blocks)):
             fmt = QTextCharFormat()
             fmt.setBackground(QColor(self.colors[i % 2]))
-            pos = self.blocks[i].getPos()
+            pos = blocks[i].getPos()
             cursor.setPosition(pos)
-            cursor.setPosition(pos + len(self.blocks[i].getOriginal()),
+            cursor.setPosition(pos + len(blocks[i].getOriginal()),
                                cursor.MoveMode.KeepAnchor)
             cursor.mergeCharFormat(fmt)
             cursor.clearSelection()
+        self.outpText.setPlainText(str(self.node))
 
     def showBlocks(self):
-        blocks_wnd = Blocks(self.blocks)
+        blocks_wnd = Blocks(self.node.getBlocks())
         blocks_wnd.exec()
 
     def cancelBlock(self):
-        self.blocks.pop(self.blocksChronology.pop())
+        self.node.removePart(self.blocksChronology.pop())
         self.repaint()
 
     @staticmethod
@@ -136,6 +133,7 @@ class Window(QMainWindow, UiMainWindow):
 class Alternatives(QDialog):
     def __init__(self, parent: Window, block: Block, fieldsCount: int = DEFAULT_FIELDS_COUNT):
         super(Alternatives, self).__init__()
+        print(parent.node.getParts())
         self.parent = parent
         self.block = block
         self.deleteBlockOnClose = not bool(block.getNodes(skip_original=True))
@@ -286,11 +284,12 @@ class Alternatives(QDialog):
             if not emptyAlternatives and nodes:
                 self.block.setNodes(nodes)
             self.close()
+        self.parent.repaint()
 
     def reject(self):
         if self.deleteBlockOnClose:
-            self.parent.blocks.remove(self.block)
-            self.parent.repaint()
+            self.parent.node.removeBlock(self.block)
+        self.parent.repaint()
         super(Alternatives, self).reject()
 
     def repaintFields(self):
@@ -318,7 +317,7 @@ class Blocks(QDialog):
 def main():
     app = QApplication(sys.argv)
     window = Window()
-    loadCfg(window)
+    # loadCfg(window)
     window.show()
     app.exec()
 

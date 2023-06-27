@@ -19,11 +19,46 @@ class Node:
 
     @assertNodeTypes
     def setPart(self, part, idx: int):
-        if not isinstance(part, (str, Block)):
-            raise NodeException(f'Invalid part type: {type(part)}')
-        if not (0 <= idx < len(self.parts)):
-            raise IndexError
+        print(part, idx)
         self.parts[idx] = part
+        print(self.parts, end='\n\n')
+
+    @assertNodeTypes
+    def insertBlock(self, block):
+        if not self.parts:
+            return
+        pos = block.getPos()
+        idx = 0
+        for i, part in enumerate(self.parts):
+            if not isinstance(part, str):
+                idx += len(part.getOriginal())
+                continue
+            if part == block.getOriginal():
+                self.parts[i] = block
+            elif idx <= pos <= idx + len(part):
+                left, right = part[:pos - idx], part[block.getEnd() - idx:]
+                self.parts[i] = block
+                if left:
+                    self.parts.insert(i, left)
+                if right:
+                    self.parts.insert(i + 1 + bool(left), right)
+                break
+            else:
+                idx += len(part)
+            idx += len(self.delimiter)
+
+    @assertNodeTypes
+    def removeBlock(self, block):
+        idx = self.parts.index(block)
+        start, end = idx, idx + 1
+        left, right = '', ''
+        if idx > 0 and isinstance(self.parts[idx - 1], str):
+            left = self.parts[idx - 1]
+            start -= 1
+        if idx + 1 < len(self.parts) and isinstance(self.parts[idx + 1], str):
+            right = self.parts[idx + 1]
+            end += 1
+        self.parts[start:end] = [left + block.getOriginal() + right]
 
     def removePart(self, idx: int):
         if not (0 <= idx < len(self.parts)):
@@ -101,9 +136,22 @@ class Block:
         return self.__repr__()
 
 
+# noinspection PyArgumentList
 def main():
-    n = Node('abc', Block('efg', 2, 'EFG'), delimiter=' ')
-    print(n)
+    text = 'abc efg hij'
+    node = Node(text)
+    blockText = 'efg'
+    block = Block(blockText, text.index(blockText), 'Efg', 'EFG')
+    print(node)
+    node.insertBlock(block)
+    print(node)
+    node.removeBlock(block)
+    print(node)
+    # blockPos = text.index('efg')
+    # blockEnd = blockPos + len(blockText)
+
+    # n = Node('abc', Block('efg', 2, 'EFG'), delimiter=' ')
+    # print(n)
 
 
 if __name__ == '__main__':

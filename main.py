@@ -1,7 +1,8 @@
 import os
 import sys
+import ctypes
 
-from PyQt6.QtCore import Qt
+from PyQt6.QtCore import Qt, QSize
 from PyQt6.QtGui import QTextCharFormat, QColor, QAction, QIcon
 from PyQt6.QtWidgets import (QApplication, QMainWindow, QDialog, QPlainTextEdit,
                              QVBoxLayout, QScrollArea, QWidget, QLabel, QDialogButtonBox,
@@ -335,6 +336,8 @@ class Blocks(QDialog):
 
 
 def main():
+    myappid = u'mycompany.myproduct.subproduct.version'  # arbitrary string
+    ctypes.windll.shell32.SetCurrentProcessExplicitAppUserModelID(myappid)
     app = QApplication(sys.argv)
     window = Window()
     # loadCfg(window)

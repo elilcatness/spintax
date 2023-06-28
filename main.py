@@ -2,11 +2,12 @@ import os
 import sys
 import ctypes
 
-from PyQt6.QtCore import Qt, QSize
+from PyQt6.QtCore import Qt, QRect
 from PyQt6.QtGui import QTextCharFormat, QColor, QAction, QIcon
 from PyQt6.QtWidgets import (QApplication, QMainWindow, QDialog, QPlainTextEdit,
                              QVBoxLayout, QScrollArea, QWidget, QLabel, QDialogButtonBox,
-                             QInputDialog, QPushButton, QStatusBar, QMessageBox, QStyle)
+                             QInputDialog, QPushButton, QStatusBar, QMessageBox, QStyle,
+                             QMenu, QMenuBar)
 
 from block import Block, Node
 from constants import DEFAULT_FIELDS_COUNT, MAX_FIELDS_COUNT, MAIN_ICON
@@ -60,30 +61,6 @@ class Window(QMainWindow, UiMainWindow):
         self.txtAppear.start()
 
     def highlightText(self):
-        # cursor = self.inpText.textCursor()
-        # if not cursor.hasSelection():
-        #     return
-        # doc = self.inpText.document()
-        # charsCount = self.inpText.document().characterCount()
-        # edges = [cursor.selectionStart(), cursor.selectionEnd()]
-        # prevEdges = edges[:]
-        # for i, step in enumerate(range(-1, 2, 2)):
-        #     while doc.characterAt(edges[i]) not in PUNCTUATION and 0 < edges[i] < charsCount:
-        #         edges[i] += step
-        # edges[0] = edges[0] + 1 if edges[0] > 0 else 0
-        # edges[1] = edges[1] - 1 if edges[1] == charsCount else edges[1]
-        # for pos in range(min(min(prevEdges), min(edges)), max(max(prevEdges), max(edges))):
-        #     cursor.setPosition(pos)
-        #     if cursor.charFormat().background().color().getRgb() != (0, 0, 0, 255):
-        #         cursor.clearSelection()
-        #         self.inpText.setTextCursor(cursor)
-        #         return
-        # start, end = edges
-        # cursor.setPosition(start)
-        # cursor.setPosition(end, cursor.MoveMode.KeepAnchor)
-        # text = cursor.selectedText()
-        # cursor.clearSelection()
-        # self.inpText.setTextCursor(cursor)
         highlightResult = highlight(self.inpText)
         if highlightResult is None:
             return
@@ -132,6 +109,9 @@ class Window(QMainWindow, UiMainWindow):
         self.node.removeBlock(self.blocksChronology.pop())
         self.repaint()
 
+    def _getNode(self, *args):
+        return self.node
+
     @staticmethod
     def _skipSpaces(doc, pos: int, step: int = 1):
         ch_count = doc.characterCount()
@@ -150,6 +130,16 @@ class Alternatives(QDialog):
         self.resize(int(parent.width() * 0.5), int(parent.height() * 0.6))
         self.setWindowTitle('Alternatives')
         self.mainLayout = QVBoxLayout()
+        self.menuBar = QMenuBar(self)
+        self.menuBar.setGeometry(QRect(0, 0, 807, 26))
+        self.menu = QMenu('Программа')
+        self.highlightAction = QAction('Выделить текст')
+        self.highlightAction.setShortcut('Ctrl+H')
+        self.highlightAction.triggered.connect(self.highlightText)
+        self.menu.addAction(self.highlightAction)
+        self.menuBar.addMenu(self.menu)
+        self.mainLayout.setMenuBar(self.menuBar)
+        self.menuBar.raise_()
         self.scrollArea = QScrollArea()
         self.scrollArea.setContentsMargins(0, 0, 0, 0)
         self.scrollBar = self.scrollArea.verticalScrollBar()
@@ -159,6 +149,8 @@ class Alternatives(QDialog):
         self.infoText = None
         self.fields = []
         self.addFieldsBtn = None
+        self.painted = []
+        self.savedTexts = []
 
         self.initWidget(fieldsCount)
         self.scrollArea.setAlignment(Qt.AlignmentFlag.AlignCenter)
@@ -181,7 +173,6 @@ class Alternatives(QDialog):
         statusBar.setSizeGripEnabled(False)
         self.mainLayout.addWidget(statusBar)
         self.setLayout(self.mainLayout)
-        self.painted = []
 
     def initWidget(self, fieldsCount: int, scrollToBottom: bool = False,
                    scrollToField: int = None):
@@ -208,7 +199,7 @@ class Alternatives(QDialog):
             field = safeGet(self.fields, i)
             usePrevField = field is not None
             if not usePrevField:
-                field = QPlainTextEdit()
+                field = AlternativeTextField(self)
                 node = safeGet(nodes, i)
                 if node is not None and node.getOriginal():
                     field.setPlainText(node.getOriginal())
@@ -244,6 +235,27 @@ class Alternatives(QDialog):
             self.deleteBlockOnClose = True
             self.reject()
 
+    def highlightText(self):
+        texts = []
+        activeField = None
+        for field in self.fields:
+            if field.hasFocus():
+                activeField = field
+            texts.append(field.toPlainText())
+        print(f'{texts=}\n{self.savedTexts=}')
+        if texts != self.savedTexts:
+            self.savedTexts = texts
+            self.save()
+            # kwargs = ({'scrollToField': self.fields.index(activeField)}
+            #           if activeField is not None else dict())
+            fieldsCount = len(self.fields)
+            self.fields = []
+            return self.initWidget(fieldsCount)
+        if activeField is None:
+            return self.statusLabel.setText(
+                'Для выделения должно быть активным одно из полей')
+        print(f'Highlighting at {self.fields.index(activeField)}')
+
     def deleteField(self):
         btn: FieldButton = self.sender()
         field = btn.field()
@@ -270,20 +282,20 @@ class Alternatives(QDialog):
         #     self.addField()
         self.statusLabel.setText(f'Добавлено полей: {fieldsCount}')
 
-    def accept(self):
+    def save(self):
         self.repaintFields()
         fields = [self.infoText] + self.fields
         nodes = self.block.getNodes(skip_original=True)
-        if len(nodes) == 3:
-            pass
-        emptyAlternatives = True
+        emptyNodes = True
         nodesOffset = 1
+        savedTexts = []
         for i in range(len(fields)):
             text = fields[i].toPlainText()
             if i > 0:
+                savedTexts.append(text)
                 prevNode = safeGet(nodes, i - nodesOffset)
                 if text:
-                    emptyAlternatives = False
+                    emptyNodes = False
                     if prevNode is None:
                         nodes.append(Node(text, delimiter=' '))
                     elif text != prevNode.getOriginal():
@@ -296,16 +308,16 @@ class Alternatives(QDialog):
                     fields[i].setStyleSheet('background: red')
                     fields[j].setStyleSheet('background: red')
                     self.painted += [i, j]
-                    break
-            else:
-                continue
-            break
-        else:
-            self.deleteBlockOnClose = emptyAlternatives
-            if not emptyAlternatives and nodes:
-                self.block.setNodes(nodes)
-            self.close()
-        self.parent.repaint()
+                    return False
+        self.deleteBlockOnClose = emptyNodes
+        if not emptyNodes and nodes:
+            self.block.setNodes(nodes)
+        self.savedTexts = savedTexts
+        return True
+
+    def accept(self):
+        if self.save():
+            self.reject()
 
     def reject(self):
         if self.deleteBlockOnClose:
@@ -319,6 +331,9 @@ class Alternatives(QDialog):
         fields = [self.infoText] + self.fields
         for idx in self.painted:
             fields[idx].setStyleSheet('')
+
+    def _getNode(self, field):
+        return safeGet(self.block.getNodes(skip_original=True), self.fields.index(field))
 
 
 class Blocks(QDialog):
@@ -336,7 +351,7 @@ class Blocks(QDialog):
 
 
 def main():
-    myappid = u'mycompany.myproduct.subproduct.version'  # arbitrary string
+    myappid = u'elilcat.spintax.spintax.1'
     ctypes.windll.shell32.SetCurrentProcessExplicitAppUserModelID(myappid)
     app = QApplication(sys.argv)
     window = Window()

@@ -46,10 +46,21 @@ class InputTextField(QPlainTextEdit):
 
     def mousePressEvent(self, event: QMouseEvent):
         pos = self.cursorForPosition(event.pos()).position()
-        for block in self.parent.node.getBlocks():
-            if block.getPos() <= pos <= block.getEnd():
-                self.parent.showBlock(block)
+        node = self.parent._getNode(self)
+        if node is not None:
+            for block in node.getBlocks():
+                if block.getPos() <= pos <= block.getEnd():
+                    self.parent.showBlock(block)
         super(InputTextField, self).mousePressEvent(event)
+
+
+class AlternativeTextField(QPlainTextEdit):
+    def focusOutEvent(self, event):
+        cursor = self.textCursor()
+        if cursor.hasSelection():
+            cursor.clearSelection()
+            self.setTextCursor(cursor)
+        super(AlternativeTextField, self).focusOutEvent(event)
 
 
 # class AlternativeTextEdit(QPlainTextEdit):
@@ -66,4 +77,4 @@ class InputTextField(QPlainTextEdit):
 #             super(AlternativeTextEdit, self).keyPressEvent(event)
 
 
-__all__ = ['TextAppearance', 'FieldButton']
+__all__ = ['TextAppearance', 'FieldButton', 'AlternativeTextField']

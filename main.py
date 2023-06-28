@@ -1,13 +1,14 @@
+import os
 import sys
 
 from PyQt6.QtCore import Qt
-from PyQt6.QtGui import QTextCharFormat, QColor, QAction
+from PyQt6.QtGui import QTextCharFormat, QColor, QAction, QIcon
 from PyQt6.QtWidgets import (QApplication, QMainWindow, QDialog, QPlainTextEdit,
                              QVBoxLayout, QScrollArea, QWidget, QLabel, QDialogButtonBox,
                              QInputDialog, QPushButton, QStatusBar, QMessageBox, QStyle)
 
 from block import Block, Node
-from constants import DEFAULT_FIELDS_COUNT, MAX_FIELDS_COUNT
+from constants import DEFAULT_FIELDS_COUNT, MAX_FIELDS_COUNT, MAIN_ICON
 from customClasses import *
 from ui.mainWindowUi import UiMainWindow
 from utils import getExtension, safeGet, highlight
@@ -21,6 +22,7 @@ class Window(QMainWindow, UiMainWindow):
         super(Window, self).__init__(*args, **kwargs)
         self.setupUi(self)
         self.setWindowTitle('Spintax')
+        self.setWindowIcon(QIcon(os.path.join('icons', MAIN_ICON)))
         self.inpText.selectionChanged.connect(self.handleSelection)
         self.cancelAction = QAction()
         self.cancelAction.setShortcut('Ctrl+Z')
@@ -90,7 +92,7 @@ class Window(QMainWindow, UiMainWindow):
         curBlock = Block(text, start)
         self.node.insertBlock(curBlock)
         try:
-            self.blocksChronology.append(self.node.getBlocks().index(curBlock))
+            self.blocksChronology.append(self.node.getParts().index(curBlock))
         except ValueError:
             pass
         self.repaint()
@@ -126,7 +128,7 @@ class Window(QMainWindow, UiMainWindow):
         blocks_wnd.exec()
 
     def cancelBlock(self):
-        self.node.removePart(self.blocksChronology.pop())
+        self.node.removeBlock(self.blocksChronology.pop())
         self.repaint()
 
     @staticmethod

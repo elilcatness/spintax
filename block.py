@@ -1,4 +1,4 @@
-from exceptions import NodeException
+from exceptions import NodeException, BlockException
 
 
 def assertNodeTypes(func):
@@ -47,9 +47,16 @@ class Node:
                 idx += len(part)
             idx += len(self.delimiter)
 
-    @assertNodeTypes
-    def removeBlock(self, block):
-        idx = self.parts.index(block)
+    # @assertNodeTypes
+    def removeBlock(self, arg):
+        if isinstance(arg, Block):
+            idx = self.parts.index(arg)
+            block = arg
+        elif isinstance(arg, int):
+            idx = arg
+            block = self.parts[idx]
+        else:
+            raise BlockException('arg type should be either Block or int')
         start, end = idx, idx + 1
         left, right = '', ''
         if idx > 0 and isinstance(self.parts[idx - 1], str):

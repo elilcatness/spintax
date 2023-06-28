@@ -3,3 +3,4 @@ PUNCTUATION = '"#$%&\'()*+,-/:;<=>@[\\]^_`{|}~ ' + ENDING_SYMBOLS
 DEFAULT_FIELDS_COUNT = 10
 MAX_FIELDS_COUNT = 100
 TAB_CODE = 16777217
+MAIN_ICON = 'main.png'

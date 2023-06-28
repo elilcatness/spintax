@@ -4,13 +4,13 @@ from PyQt6.QtCore import Qt
 from PyQt6.QtGui import QTextCharFormat, QColor, QAction
 from PyQt6.QtWidgets import (QApplication, QMainWindow, QDialog, QPlainTextEdit,
                              QVBoxLayout, QScrollArea, QWidget, QLabel, QDialogButtonBox,
-                             QInputDialog, QPushButton, QStatusBar, QSizePolicy)
+                             QInputDialog, QPushButton, QStatusBar, QMessageBox, QStyle)
 
 from block import Block, Node
-from constants import PUNCTUATION, DEFAULT_FIELDS_COUNT, MAX_FIELDS_COUNT
+from constants import DEFAULT_FIELDS_COUNT, MAX_FIELDS_COUNT
 from customClasses import *
 from ui.mainWindowUi import UiMainWindow
-from utils import loadCfg, getExtension, safeGet
+from utils import getExtension, safeGet, highlight
 
 
 class Window(QMainWindow, UiMainWindow):
@@ -57,30 +57,36 @@ class Window(QMainWindow, UiMainWindow):
         self.txtAppear.start()
 
     def highlightText(self):
-        cursor = self.inpText.textCursor()
-        if not cursor.hasSelection():
+        # cursor = self.inpText.textCursor()
+        # if not cursor.hasSelection():
+        #     return
+        # doc = self.inpText.document()
+        # charsCount = self.inpText.document().characterCount()
+        # edges = [cursor.selectionStart(), cursor.selectionEnd()]
+        # prevEdges = edges[:]
+        # for i, step in enumerate(range(-1, 2, 2)):
+        #     while doc.characterAt(edges[i]) not in PUNCTUATION and 0 < edges[i] < charsCount:
+        #         edges[i] += step
+        # edges[0] = edges[0] + 1 if edges[0] > 0 else 0
+        # edges[1] = edges[1] - 1 if edges[1] == charsCount else edges[1]
+        # for pos in range(min(min(prevEdges), min(edges)), max(max(prevEdges), max(edges))):
+        #     cursor.setPosition(pos)
+        #     if cursor.charFormat().background().color().getRgb() != (0, 0, 0, 255):
+        #         cursor.clearSelection()
+        #         self.inpText.setTextCursor(cursor)
+        #         return
+        # start, end = edges
+        # cursor.setPosition(start)
+        # cursor.setPosition(end, cursor.MoveMode.KeepAnchor)
+        # text = cursor.selectedText()
+        # cursor.clearSelection()
+        # self.inpText.setTextCursor(cursor)
+        highlightResult = highlight(self.inpText)
+        if highlightResult is None:
             return
-        doc = self.inpText.document()
-        charsCount = self.inpText.document().characterCount()
-        edges = [cursor.selectionStart(), cursor.selectionEnd()]
-        prevEdges = edges[:]
-        for i, step in enumerate(range(-1, 2, 2)):
-            while doc.characterAt(edges[i]) not in PUNCTUATION and 0 < edges[i] < charsCount:
-                edges[i] += step
-        edges[0] = edges[0] + 1 if edges[0] > 0 else 0
-        edges[1] = edges[1] - 1 if edges[1] == charsCount else edges[1]
-        for pos in range(min(min(prevEdges), min(edges)), max(max(prevEdges), max(edges))):
-            cursor.setPosition(pos)
-            if cursor.charFormat().background().color().getRgb() != (0, 0, 0, 255):
-                cursor.clearSelection()
-                self.inpText.setTextCursor(cursor)
-                return
-        start, end = edges
-        cursor.setPosition(start)
-        cursor.setPosition(end, cursor.MoveMode.KeepAnchor)
-        text = cursor.selectedText()
-        cursor.clearSelection()
-        self.inpText.setTextCursor(cursor)
+        text, start = highlightResult
+        if not text:
+            return
         curBlock = Block(text, start)
         self.node.insertBlock(curBlock)
         try:
@@ -224,8 +230,16 @@ class Alternatives(QDialog):
             self.scrollBar.setValue(int(scrollToField * scrollFieldValue * 1.25))
 
     def discard(self):
-        self.deleteBlockOnClose = True
-        self.reject()
+        dlg = QMessageBox(self)
+        dlg.setWindowTitle('Confirm an action')
+        icon = self.style().standardIcon(QStyle.StandardPixmap.SP_MessageBoxWarning)
+        dlg.setWindowIcon(icon)
+        dlg.setText('Вы уверены, что хотите удалить данный блок?')
+        dlg.setStandardButtons(QMessageBox.StandardButton.Yes | QMessageBox.StandardButton.No)
+        button = dlg.exec()
+        if button == QMessageBox.StandardButton.Yes:
+            self.deleteBlockOnClose = True
+            self.reject()
 
     def deleteField(self):
         btn: FieldButton = self.sender()

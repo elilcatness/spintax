@@ -32,6 +32,7 @@ class TextAppearance(QObject):
     def send_signal(self):
         # noinspection PyUnresolvedReferences
         self.signal.emit()
+        self.timer.stop()
 
 
 class FieldButton(QPushButton):
@@ -72,6 +73,7 @@ class AlternativeTextField(QPlainTextEdit):
     def focusInEvent(self, event):
         style = changeStyleProperty(self.styleSheet(), 'border-color', '#0078D4')
         self.setStyleSheet(style)
+        super(AlternativeTextField, self).focusInEvent(event)
 
 
 __all__ = ['TextAppearance', 'FieldButton', 'AlternativeTextField']

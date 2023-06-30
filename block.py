@@ -113,8 +113,11 @@ class Block:
     def getEnd(self):
         return self.getPos() + len(self.getOriginal())
 
-    def getNodes(self, skip_original: bool = False):
-        return self.nodes[skip_original:]
+    def getNodes(self, skipOriginal: bool = True):
+        return self.nodes[skipOriginal:]
+
+    def getNode(self, idx: int, skipOriginal: bool = True):
+        return self.nodes[skipOriginal:][idx]
 
     def setNodes(self, nodes: list):
         self.nodes[1:] = [Node(n) if not isinstance(n, Node) else n for n in nodes]

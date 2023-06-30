@@ -1,5 +1,6 @@
 from PyQt6 import QtCore, QtGui, QtWidgets
 
+from constants import TEXT_FIELD_STYLE
 from customClasses import InputTextField
 
 
@@ -19,7 +20,9 @@ class UiMainWindow:
         self.centralwidget = QtWidgets.QWidget(parent=MainWindow)
         self.centralwidget.setObjectName("centralwidget")
         self.inpText = InputTextField(MainWindow, parent=self.centralwidget)
+        self.inpText.setStyleSheet(TEXT_FIELD_STYLE)
         self.outpText = QtWidgets.QPlainTextEdit(parent=self.centralwidget)
+        self.outpText.setStyleSheet(TEXT_FIELD_STYLE)
         self.outpText.setReadOnly(True)
         self.vertical = QtWidgets.QVBoxLayout()
         self.vertical.addWidget(self.inpText)

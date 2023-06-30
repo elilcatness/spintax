@@ -10,7 +10,7 @@ from PyQt6.QtWidgets import (QApplication, QMainWindow, QDialog, QPlainTextEdit,
                              QMenu, QMenuBar)
 
 from block import Block, Node
-from constants import DEFAULT_FIELDS_COUNT, MAX_FIELDS_COUNT, MAIN_ICON
+from constants import DEFAULT_FIELDS_COUNT, MAX_FIELDS_COUNT, MAIN_ICON, TEXT_FIELD_STYLE, SCROLL_AREA_STYLE
 from customClasses import *
 from ui.mainWindowUi import UiMainWindow
 from utils import getExtension, safeGet, highlight
@@ -28,6 +28,7 @@ class Window(QMainWindow, UiMainWindow):
         self.inpText.selectionChanged.connect(self.handleSelection)
         self.cancelAction = QAction()
         self.cancelAction.setShortcut('Ctrl+Z')
+        # noinspection PyUnresolvedReferences
         self.cancelAction.triggered.connect(self.cancelBlock)
         self.inpText.addAction(self.cancelAction)
         self.txtAppear = TextAppearance()
@@ -135,12 +136,14 @@ class Alternatives(QDialog):
         self.menu = QMenu('Программа')
         self.highlightAction = QAction('Выделить текст')
         self.highlightAction.setShortcut('Ctrl+H')
+        # noinspection PyUnresolvedReferences
         self.highlightAction.triggered.connect(self.highlightText)
         self.menu.addAction(self.highlightAction)
         self.menuBar.addMenu(self.menu)
         self.mainLayout.setMenuBar(self.menuBar)
         self.menuBar.raise_()
         self.scrollArea = QScrollArea()
+        self.scrollArea.setStyleSheet(SCROLL_AREA_STYLE)
         self.scrollArea.setContentsMargins(0, 0, 0, 0)
         self.scrollBar = self.scrollArea.verticalScrollBar()
 
@@ -164,8 +167,11 @@ class Alternatives(QDialog):
             QDialogButtonBox.StandardButton.Ok)
         self.mainLayout.addWidget(buttonBox)
         discardBtn = buttonBox.button(QDialogButtonBox.StandardButton.Discard)
+        # noinspection PyUnresolvedReferences
         discardBtn.clicked.connect(self.discard)
+        # noinspection PyUnresolvedReferences
         buttonBox.accepted.connect(self.accept)
+        # noinspection PyUnresolvedReferences
         buttonBox.rejected.connect(self.reject)
         statusBar = QStatusBar()
         self.statusLabel = QLabel()
@@ -174,6 +180,7 @@ class Alternatives(QDialog):
         self.mainLayout.addWidget(statusBar)
         self.setLayout(self.mainLayout)
 
+    # noinspection PyUnresolvedReferences
     def initWidget(self, fieldsCount: int, scrollToBottom: bool = False,
                    scrollToField: int = None):
         for obj in self.widget, self.layout, self.infoText:
@@ -184,6 +191,7 @@ class Alternatives(QDialog):
         head = QVBoxLayout()
         head.addWidget(QLabel('Выбранный блок'))
         self.infoText = QPlainTextEdit(self.block.getOriginal())
+        self.infoText.setStyleSheet(TEXT_FIELD_STYLE)
         self.infoText.setMinimumHeight(self.height() // 7)
         self.infoText.setMaximumHeight(self.height() // 7)
         self.infoText.setReadOnly(True)
@@ -200,6 +208,7 @@ class Alternatives(QDialog):
             usePrevField = field is not None
             if not usePrevField:
                 field = AlternativeTextField(self)
+                field.setStyleSheet(TEXT_FIELD_STYLE)
                 node = safeGet(nodes, i)
                 if node is not None and node.getOriginal():
                     field.setPlainText(node.getOriginal())
@@ -213,6 +222,7 @@ class Alternatives(QDialog):
             fieldVertical.setSpacing(5)
             self.layout.addLayout(fieldVertical)
         self.addFieldsBtn = QPushButton('Добавить поля')
+        self.addFieldsBtn.setStyleSheet('background: white')
         self.addFieldsBtn.pressed.connect(self.addFields)
         self.layout.addWidget(self.addFieldsBtn)
         self.widget.setLayout(self.layout)
@@ -236,27 +246,28 @@ class Alternatives(QDialog):
             self.reject()
 
     def highlightText(self):
+        self.statusLabel.setText('')
         texts = []
         activeField = None
         for field in self.fields:
             if field.hasFocus():
                 activeField = field
             texts.append(field.toPlainText())
-        print(f'{texts=}\n{self.savedTexts=}')
+        # well, yep, there are two saves, but what can you do to me?
         if texts != self.savedTexts:
-            self.savedTexts = texts
             self.save()
-            # kwargs = ({'scrollToField': self.fields.index(activeField)}
-            #           if activeField is not None else dict())
             fieldsCount = len(self.fields)
             self.fields = []
-            return self.initWidget(fieldsCount)
+            self.initWidget(fieldsCount)
+            self.save()
+            return self.statusLabel.setText('Поля были сохранены перед выделением')
         if activeField is None:
             return self.statusLabel.setText(
                 'Для выделения должно быть активным одно из полей')
         print(f'Highlighting at {self.fields.index(activeField)}')
 
     def deleteField(self):
+        # noinspection PyTypeChecker
         btn: FieldButton = self.sender()
         field = btn.field()
         idx = self.fields.index(field)
@@ -305,8 +316,8 @@ class Alternatives(QDialog):
                     nodesOffset += 1
             for j in range(i + 1, len(fields)):
                 if i != j and text == fields[j].toPlainText() != '':
-                    fields[i].setStyleSheet('background: red')
-                    fields[j].setStyleSheet('background: red')
+                    fields[i].setStyleSheet(TEXT_FIELD_STYLE + 'background: red')
+                    fields[j].setStyleSheet(TEXT_FIELD_STYLE + 'background: red')
                     self.painted += [i, j]
                     return False
         self.deleteBlockOnClose = emptyNodes

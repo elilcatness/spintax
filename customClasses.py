@@ -3,7 +3,7 @@ from PyQt6.QtGui import QMouseEvent
 from PyQt6.QtWidgets import QPushButton, QPlainTextEdit
 
 from constants import TEXT_FIELD_STYLE
-from utils import changeStyleProperty, getStyleProperty
+from utils import changeStyleProperty, getStyleProperty, safeGet
 
 
 class TextAppearance(QObject):
@@ -51,16 +51,19 @@ class InputTextField(QPlainTextEdit):
 
     def mousePressEvent(self, event: QMouseEvent):
         pos = self.cursorForPosition(event.pos()).position()
-        node = self.parent._getNode(self)
-        if node is not None:
-            for block in node.getBlocks():
+        print(pos, f'{self.parent=}', f'{self.parent.node=}')
+        if self.parent.node is not None:
+            for block in self.parent.node.getBlocks():
                 if block.getPos() <= pos <= block.getEnd():
                     self.parent.showBlock(block)
         super(InputTextField, self).mousePressEvent(event)
 
 
-class AlternativeTextField(QPlainTextEdit):
+class AlternativeTextField(InputTextField):
     def focusOutEvent(self, event):
+        texts = [field.toPlainText() for field in self.parent.fields]
+        if texts != self.parent.savedTexts:
+            return self.parent.preSave()
         defaultBorderColor = getStyleProperty(TEXT_FIELD_STYLE, 'border-color', 'white')
         style = changeStyleProperty(self.styleSheet(), 'border-color', defaultBorderColor)
         self.setStyleSheet(style)
@@ -71,6 +74,15 @@ class AlternativeTextField(QPlainTextEdit):
         super(AlternativeTextField, self).focusOutEvent(event)
 
     def focusInEvent(self, event):
+        texts = [field.toPlainText() for field in self.parent.fields]
+        if texts != self.parent.savedTexts:
+            return self.parent.preSave()
+        idx = self.parent.fields.index(self)
+        node = safeGet(self.parent.block.getNodes(), idx)
+        if node is not None:
+            self.parent.node = node
+        else:
+            self.parent.node = None
         style = changeStyleProperty(self.styleSheet(), 'border-color', '#0078D4')
         self.setStyleSheet(style)
         super(AlternativeTextField, self).focusInEvent(event)

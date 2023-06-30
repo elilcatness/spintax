@@ -11,6 +11,7 @@ from utils import safeGet
 
 class HighlightMixin:
     alternativeWnd = None
+    node = None
 
     def repaint(self):
         pass
@@ -109,6 +110,7 @@ class Alternatives(QDialog, HighlightMixin):
         self.addFieldsBtn = None
         self.painted = []
         self.savedTexts = []
+        self.node = None
 
         self.initWidget(fieldsCount)
         self.scrollArea.setAlignment(Qt.AlignmentFlag.AlignCenter)
@@ -164,7 +166,7 @@ class Alternatives(QDialog, HighlightMixin):
             usePrevField = field is not None
             node = safeGet(nodes, i)
             if not usePrevField:
-                field = AlternativeTextField(self)
+                field = AlternativeTextField(self, self)
                 field.setStyleSheet(TEXT_FIELD_STYLE)
                 if node is not None and node.getOriginal():
                     field.setPlainText(node.getOriginal())
@@ -174,6 +176,8 @@ class Alternatives(QDialog, HighlightMixin):
                 blocks = node.getBlocks()
                 if blocks:
                     self.paintBlocks(field, blocks, self.colors)
+            # noinspection PyUnresolvedReferences
+            field.textChanged.connect(self.moveBlocks)
             btn = FieldButton(field, 'Delete')
             btn.setStyleSheet('background: #FA5F55')
             # noinspection PyUnresolvedReferences
@@ -194,6 +198,25 @@ class Alternatives(QDialog, HighlightMixin):
         elif scrollToField is not None and fieldsCount:
             scrollFieldValue = self.scrollBar.maximum() // fieldsCount
             self.scrollBar.setValue(int(scrollToField * scrollFieldValue * 1.25))
+
+    def moveBlocks(self):
+        field: AlternativeTextField = self.sender()
+        idx = self.fields.index(field)
+        node = self.block.getNode(idx)
+        if node is None:
+            return
+        text = field.toPlainText()
+        original = node.getOriginal()
+        print(f'{text=}')
+        print(f'{original=}')
+        if text == original:
+            print('return')
+            return
+        pos = field.textCursor().position()
+        for block in node.getBlocks():
+            if block.getPos() >= pos:
+                block.setPos(block.getPos() + 1)
+        self.paintBlocks(field, node, self.colors)
 
     def discard(self):
         dlg = QMessageBox(self)
@@ -217,11 +240,7 @@ class Alternatives(QDialog, HighlightMixin):
             texts.append(field.toPlainText())
         # well, yep, there are two saves, but what can you do to me?
         if texts != self.savedTexts:
-            self.save()
-            fieldsCount = len(self.fields)
-            self.fields = []
-            self.initWidget(fieldsCount)
-            self.save()
+            self.preSave()
             return self.statusLabel.setText('Поля были сохранены перед выделением')
         if activeField is None:
             return self.statusLabel.setText(
@@ -235,12 +254,14 @@ class Alternatives(QDialog, HighlightMixin):
         if highlightResults is not None:
             block, _ = highlightResults
             self.paintBlocks(activeField, node.getBlocks(), self.colors)
+            self.node = node
             self.showBlock(block)
+            self.paintBlocks(activeField, node.getBlocks(), self.colors)
 
     def deleteField(self):
-        # noinspection PyTypeChecker
         if len(self.fields) == 1:
             return self.discard()
+        # noinspection PyTypeChecker
         btn: FieldButton = self.sender()
         field = btn.field()
         idx = self.fields.index(field)
@@ -264,6 +285,13 @@ class Alternatives(QDialog, HighlightMixin):
         # for _ in range(fieldsCount):
         #     self.addField()
         self.statusLabel.setText(f'Добавлено полей: {fieldsCount}')
+
+    def preSave(self):
+        self.save()
+        fieldsCount = len(self.fields)
+        self.fields = []
+        self.initWidget(fieldsCount)
+        self.save()
 
     def save(self):
         self.repaintFields()

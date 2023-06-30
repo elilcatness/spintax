@@ -110,7 +110,7 @@ class Window(QMainWindow, UiMainWindow):
         self.node.removeBlock(self.blocksChronology.pop())
         self.repaint()
 
-    def _getNode(self, *args):
+    def _getNode(self, _):
         return self.node
 
     @staticmethod

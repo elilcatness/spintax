@@ -1,7 +1,6 @@
-from PyQt6.QtGui import QTextCursor, QTextDocument
 from PyQt6.QtWidgets import QMainWindow, QPlainTextEdit
 
-from constants import PUNCTUATION
+from constants import PUNCTUATION, TEXT_FIELD_STYLE
 
 
 def loadCfg(window: QMainWindow, filename: str = 'cfg.txt'):
@@ -56,3 +55,23 @@ def highlight(textField: QPlainTextEdit):
     cursor.clearSelection()
     textField.setTextCursor(cursor)
     return text, start
+
+
+def changeStyleProperty(style: str, prop: str, val: str):
+    styleBlocks = style.split(';')
+    for i in range(len(styleBlocks)):
+        styleBlocks[i] = styleBlocks[i].strip()
+        if styleBlocks[i].split(':')[0] == prop:
+            styleBlocks[i] = f'{prop}: {val}'
+            break
+    else:
+        styleBlocks.append(f'{prop}: {val}')
+    return '; '.join(styleBlocks) + (';' if not styleBlocks[-1].endswith(';') else '')
+
+
+def getStyleProperty(style: str, prop: str, default: str = None):
+    styleBlocks = style.split(';')
+    for i in range(len(styleBlocks)):
+        if styleBlocks[i].strip() == prop:
+            return styleBlocks[-1].split(':')[-1].strip()
+    return default

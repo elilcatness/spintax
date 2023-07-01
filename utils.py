@@ -1,5 +1,6 @@
 from PyQt6.QtWidgets import QMainWindow, QPlainTextEdit
 
+from block import Node
 from constants import PUNCTUATION, TEXT_FIELD_STYLE
 
 
@@ -57,7 +58,17 @@ def highlight(textField: QPlainTextEdit):
     return text, start
 
 
-def changeStyleProperty(style: str, prop: str, val: str):
+def moveBlocks(blocks, fromPos: int, offset: int) -> bool:
+    if fromPos < 0 or offset <= 0 or not blocks:
+        return False
+    for block in blocks:
+        blockPos = block.getPos()
+        if blockPos >= fromPos:
+            block.setPos(blockPos + offset)
+    return True
+
+
+def changeStyleProperty(style: str, prop: str, val: str) -> str:
     styleBlocks = style.split(';')
     for i in range(len(styleBlocks)):
         styleBlocks[i] = styleBlocks[i].strip()

@@ -20,6 +20,8 @@ class HighlightMixin:
         # noinspection PyTypeChecker
         self.alternativeWnd = Alternatives(self, block)
         self.alternativeWnd.exec()
+        if not isinstance(self, Alternatives):
+            self.repaint()
 
     def highlight(self, textField: QPlainTextEdit, node):
         cursor = textField.textCursor()
@@ -292,6 +294,7 @@ class Alternatives(QDialog, HighlightMixin):
         self.statusLabel.setText(f'Добавлено полей: {fieldsCount}')
 
     def preSave(self, textToFocus: str = None):
+        print('preSave')
         self.save()
         fieldsCount = len(self.fields)
         self.fields = []

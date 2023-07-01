@@ -140,7 +140,7 @@ class Alternatives(QDialog, HighlightMixin):
         # self.chronologies = [[] for _ in range()]
 
     def initWidget(self, fieldsCount: int, scrollToBottom: bool = False,
-                   scrollToField: int = None):
+                   scrollToField: int = None, textToFocus: str = None):
         for obj in self.widget, self.layout, self.infoText:
             if obj:
                 del obj
@@ -176,8 +176,11 @@ class Alternatives(QDialog, HighlightMixin):
                 blocks = node.getBlocks()
                 if blocks:
                     self.paintBlocks(field, blocks, self.colors)
+            if textToFocus and field.toPlainText() == textToFocus:
+                field.setFocus()
+                textToFocus = None
             # noinspection PyUnresolvedReferences
-            field.textChanged.connect(self.moveBlocks)
+            # field.textChanged.connect(self.moveBlocks)
             btn = FieldButton(field, 'Delete')
             btn.setStyleSheet('background: #FA5F55')
             # noinspection PyUnresolvedReferences
@@ -186,6 +189,8 @@ class Alternatives(QDialog, HighlightMixin):
             fieldVertical.addWidget(btn)
             fieldVertical.setSpacing(5)
             self.layout.addLayout(fieldVertical)
+        if not self.savedTexts:
+            self.savedTexts = [field.toPlainText() for field in self.fields]
         self.addFieldsBtn = QPushButton('Добавить поля')
         self.addFieldsBtn.setStyleSheet('background: white')
         # noinspection PyUnresolvedReferences
@@ -286,11 +291,11 @@ class Alternatives(QDialog, HighlightMixin):
         #     self.addField()
         self.statusLabel.setText(f'Добавлено полей: {fieldsCount}')
 
-    def preSave(self):
+    def preSave(self, textToFocus: str = None):
         self.save()
         fieldsCount = len(self.fields)
         self.fields = []
-        self.initWidget(fieldsCount)
+        self.initWidget(fieldsCount, textToFocus=textToFocus)
         self.save()
 
     def save(self):
@@ -334,7 +339,17 @@ class Alternatives(QDialog, HighlightMixin):
     def reject(self):
         if self.deleteBlockOnClose:
             self.parent.node.removeBlock(self.block)
-        self.parent.repaint()
+            if not isinstance(self.parent, Alternatives):
+                self.parent.repaint()
+            else:
+                try:
+                    idx = self.parent.block.getNodes().index(self.parent.node)
+                except IndexError:
+                    return self.parent.statusLabel.setText(
+                        'Не удалось убрать выделение с блока после удаления')
+                field = self.parent.fields[idx]
+                self.parent.paintBlocks(field, self.parent.node.getBlocks(),
+                                        self.parent.colors)
         super(Alternatives, self).reject()
 
     def repaintFields(self):

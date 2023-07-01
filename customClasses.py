@@ -1,5 +1,5 @@
 from PyQt6.QtCore import QObject, pyqtSignal, QTimer
-from PyQt6.QtGui import QMouseEvent
+from PyQt6.QtGui import QMouseEvent, QKeyEvent
 from PyQt6.QtWidgets import QPushButton, QPlainTextEdit
 
 from constants import TEXT_FIELD_STYLE
@@ -56,7 +56,10 @@ class InputTextField(QPlainTextEdit):
             for block in self.parent.node.getBlocks():
                 if block.getPos() <= pos <= block.getEnd():
                     self.parent.showBlock(block)
-        super(InputTextField, self).mousePressEvent(event)
+        try:
+            super(InputTextField, self).mousePressEvent(event)
+        except RuntimeError:
+            pass
 
 
 class AlternativeTextField(InputTextField):
@@ -76,7 +79,7 @@ class AlternativeTextField(InputTextField):
     def focusInEvent(self, event):
         texts = [field.toPlainText() for field in self.parent.fields]
         if texts != self.parent.savedTexts:
-            return self.parent.preSave()
+            return self.parent.preSave(textToFocus=self.toPlainText())
         idx = self.parent.fields.index(self)
         node = safeGet(self.parent.block.getNodes(), idx)
         if node is not None:
@@ -86,6 +89,17 @@ class AlternativeTextField(InputTextField):
         style = changeStyleProperty(self.styleSheet(), 'border-color', '#0078D4')
         self.setStyleSheet(style)
         super(AlternativeTextField, self).focusInEvent(event)
+
+    def keyPressEvent(self, event: QKeyEvent):
+        if event.isInputEvent() and self.parent.node is not None:
+            print(f'{event.text()=}')
+            # pos = self.textCursor().position()
+            # blocks = self.parent.node.getBlocks()
+            # for block in blocks:
+            #     if block.getPos() >= pos:
+            #         block.setPos(block.getPos() + 1)
+            # self.parent.paintBlocks(self, blocks, self.parent.colors)
+        super(AlternativeTextField, self).keyPressEvent(event)
 
 
 __all__ = ['TextAppearance', 'FieldButton', 'AlternativeTextField']

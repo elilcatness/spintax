@@ -23,6 +23,14 @@ class Node:
         self.parts[idx] = part
         print(self.parts, end='\n\n')
 
+    def setParts(self, *parts):
+        newParts = []
+        for part in parts:
+            if not isinstance(part, (str, Block)):
+                raise NodeException(f'Invalid type given as part in {parts}')
+            newParts.append(part)
+        self.parts = newParts
+
     @assertNodeTypes
     def insertBlock(self, block):
         if not self.parts:
@@ -96,6 +104,9 @@ class Node:
 
     def __str__(self):
         return self.__repr__()
+
+    def __len__(self):
+        return len(self.parts)
 
 
 class Block:

@@ -73,13 +73,13 @@ class AlternativeTextField(InputTextField):
             texts = [field.toPlainText() for field in self.parent.fields]
             if texts != self.parent.savedTexts:
                 self.parent.preSave()
-            # defaultBorderColor = getStyleProperty(TEXT_FIELD_STYLE, 'border-color', 'white')
-            # style = changeStyleProperty(self.styleSheet(), 'border-color', defaultBorderColor)
-            # self.setStyleSheet(style)
-            # cursor = self.textCursor()
-            # if cursor.hasSelection():
-            #     cursor.clearSelection()
-            #     self.setTextCursor(cursor)
+            defaultBorderColor = getStyleProperty(TEXT_FIELD_STYLE, 'border-color', 'white')
+            style = changeStyleProperty(self.styleSheet(), 'border-color', defaultBorderColor)
+            self.setStyleSheet(style)
+            cursor = self.textCursor()
+            if cursor.hasSelection():
+                cursor.clearSelection()
+                self.setTextCursor(cursor)
             super(AlternativeTextField, self).focusOutEvent(event)
         except RuntimeError:
             pass
@@ -105,8 +105,8 @@ class AlternativeTextField(InputTextField):
                 self.parent.node = node
             else:
                 self.parent.node = None
-            # style = changeStyleProperty(self.styleSheet(), 'border-color', '#0078D4')
-            # self.setStyleSheet(style)
+            style = changeStyleProperty(self.styleSheet(), 'border-color', '#0078D4')
+            self.setStyleSheet(style)
             super(AlternativeTextField, self).focusInEvent(event)
         except RuntimeError:
             pass
@@ -125,24 +125,23 @@ class AlternativeTextField(InputTextField):
                     clipText = clipboard.text()
                     if clipText:
                         pos, offset = self.textCursor().position(), len(clipText)
-                        self._handleBlocks(self.toPlainText(), blocks, pos, offset)
+                        self._handleBlocks(clipText, blocks, pos, offset)
                         repaintBlocks = True
                 elif key in (Qt.Key.Key_Delete, Qt.Key.Key_Backspace, Qt.Key.Key_X):
                     cursor = self.textCursor()
-                    if cursor.hasSelection():
+                    if cursor.hasSelection() and (pos := cursor.position()) > 0:
                         selectedText = cursor.selectedText()
-                        pos, offset = cursor.position(), len(selectedText)
+                        offset = len(selectedText)
                         self._handleBlocks(self.toPlainText(), blocks, pos, -offset)
                         repaintBlocks = True
-            elif not modifiers and text:
-                pos, offset = self.textCursor().position(), 1
-                self._handleBlocks(self.toPlainText(), blocks, pos, offset)
+            elif not modifiers and text and (pos := self.textCursor().position()) > 0:
+                self._handleBlocks(text, blocks, pos, 1)
                 repaintBlocks = True
         super(AlternativeTextField, self).keyPressEvent(event)
         if repaintBlocks and blocks:
             self.parent.paintBlocks(self, blocks, self.parent.colors)
 
-    def _handleBlocks(self, newText: str, blocks, pos: int, offset: int):
+    def _handleBlocks(self, text: str, blocks, pos: int, offset: int):
         if not moveBlocks(blocks, pos, offset):
             statusText = 'Не удалось переместить блоки'
             try:
@@ -152,7 +151,9 @@ class AlternativeTextField(InputTextField):
                 pass
             self.parent.statusLabel.setText(statusText)
         else:
-            self.parent.node = Node(newText)
+            newText = self.toPlainText()
+            newText = newText[:pos] + text + newText[pos:]
+            self.parent.node.setParts(newText)
             for block in blocks:
                 self.parent.node.insertBlock(block)
 

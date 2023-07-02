@@ -59,7 +59,7 @@ def highlight(textField: QPlainTextEdit):
 
 
 def moveBlocks(blocks, fromPos: int, offset: int) -> bool:
-    if fromPos < 0 or offset <= 0 or not blocks:
+    if fromPos <= 0 or offset <= 0 or not blocks:
         return False
     for block in blocks:
         blockPos = block.getPos()

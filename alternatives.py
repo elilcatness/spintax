@@ -181,6 +181,7 @@ class Alternatives(QDialog, HighlightMixin):
             if textToFocus and field.toPlainText() == textToFocus:
                 field.setFocus()
                 textToFocus = None
+                scrollToField = i
             # noinspection PyUnresolvedReferences
             # field.textChanged.connect(self.moveBlocks)
             btn = FieldButton(field, 'Delete')
@@ -204,7 +205,7 @@ class Alternatives(QDialog, HighlightMixin):
             self.scrollBar.setValue(self.scrollBar.maximum())
         elif scrollToField is not None and fieldsCount:
             scrollFieldValue = self.scrollBar.maximum() // fieldsCount
-            self.scrollBar.setValue(int(scrollToField * scrollFieldValue * 1.25))
+            self.scrollBar.setValue(int(scrollToField * scrollFieldValue * 1.5))
 
     def moveBlocks(self):
         field: AlternativeTextField = self.sender()

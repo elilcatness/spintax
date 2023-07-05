@@ -140,10 +140,6 @@ class Block:
     def setNodes(self, nodes: list):
         self.nodes[1:] = [Node(n) if not isinstance(n, Node) else n for n in nodes]
 
-    def setNode(self, idx: int, node):
-        if 0 <= idx < len(self.nodes) and isinstance(node, (str, Block)):
-            self.nodes[idx] = node
-
     def removeNode(self, idx: int):
         self.nodes.pop(idx)
 

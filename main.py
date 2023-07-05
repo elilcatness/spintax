@@ -1,4 +1,5 @@
 import os
+import shutil
 import sys
 import ctypes
 
@@ -9,8 +10,8 @@ from src.alternatives import HighlightMixin
 from src.block import Node
 from src.constants import MAIN_ICON, EXPORT_RESOURCE_DIR, EXPORT_RESOURCE_DEFAULT_FILENAME, RESTRICTED_SYMBOLS
 from src.customClasses import *
+from src.utils import expand
 from ui.mainWindowUi import UiMainWindow
-from src.utils import getExtension
 
 
 class Window(QMainWindow, UiMainWindow, HighlightMixin):
@@ -38,6 +39,7 @@ class Window(QMainWindow, UiMainWindow, HighlightMixin):
 
         self.openAction.triggered.connect(self.loadText)
         self.resourceAction.triggered.connect(self.exportResource)
+        self.exportAction.triggered.connect(self.export)
         self.blocksAction.triggered.connect(self.showBlocks)
         self.viewMenu.addAction(self.blocksAction)
 
@@ -82,22 +84,6 @@ class Window(QMainWindow, UiMainWindow, HighlightMixin):
         if idx is not None:
             self.blocksChronology.append(idx)
 
-    # def highlightText(self):
-    #     highlightResult = highlight(self.inpText)
-    #     if highlightResult is None:
-    #         return
-    #     text, start = highlightResult
-    #     if not text:
-    #         return
-    #     curBlock = Block(text, start)
-    #     self.node.insertBlock(curBlock)
-    #     try:
-    #         self.blocksChronology.append(self.node.getParts().index(curBlock))
-    #     except ValueError:
-    #         pass
-    #     self.repaint()
-    #     self.showBlock(curBlock)
-
     def repaint(self):
         self.paintBlocks(self.inpText, self.node.getBlocks(), self.colors)
         self.outpText.setPlainText(str(self.node))
@@ -132,6 +118,21 @@ class Window(QMainWindow, UiMainWindow, HighlightMixin):
             return self.exportResource()
         self.savedText = text
         self.statusbar.showMessage(f'Файл {path} был успешно сохранён!')
+
+    def export(self):
+        folder = 'texts'
+        if os.path.exists(folder):
+            shutil.rmtree(folder)
+        os.mkdir(folder)
+        totalCount = 0
+        for i, mode in enumerate(('first', 'last', 'random'), 1):
+            if i == 0:
+                text, totalCount = expand(self.node, mode=mode, totalCount=totalCount)
+                print(f'{totalCount=}')
+            else:
+                text, _ = expand(self.node, mode=mode)
+            with open(os.path.join(folder, f'{i}.txt'), 'w', encoding='utf-8') as f:
+                f.write(text)
 
     def _getNode(self, _):
         return self.node

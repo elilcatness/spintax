@@ -115,6 +115,7 @@ class Alternatives(QDialog, HighlightMixin):
         self.painted = []
         self.savedTexts = []
         self.node = None
+        self.isSaving = False
 
         self.initWidget(fieldsCount)
         self.scrollArea.setAlignment(Qt.AlignmentFlag.AlignCenter)
@@ -301,12 +302,15 @@ class Alternatives(QDialog, HighlightMixin):
         self.statusLabel.setText(f'Добавлено полей: {fieldsCount}')
 
     def preSave(self, textToFocus: str = None):
-        print('preSave')
+        if textToFocus == 'dsadsa':
+            print(textToFocus)
+        self.isSaving = True
         self.save()
         fieldsCount = len(self.fields)
         self.fields = []
-        self.initWidget(fieldsCount, textToFocus=textToFocus)
+        self.initWidget(fieldsCount)
         self.save()
+        self.isSaving = False
 
     def save(self):
         self.repaintFields()

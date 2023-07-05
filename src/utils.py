@@ -1,5 +1,8 @@
+from random import randint, choice
+
 from PyQt6.QtWidgets import QMainWindow, QPlainTextEdit
 
+from src.block import Node, Block
 from src.constants import PUNCTUATION
 
 
@@ -16,10 +19,6 @@ def loadCfg(window: QMainWindow, filename: str = 'cfg.txt'):
             if ',' in value:
                 value = [val.strip() for val in value.split(',')]
             setattr(window, attr, value)
-
-
-def getExtension(filename: str):
-    return filename.split('.')[-1]
 
 
 def safeGet(lst: list, idx, default=None):
@@ -65,6 +64,25 @@ def moveBlocks(blocks, fromPos: int, offset: int) -> bool:
         if blockPos >= fromPos:
             block.setPos(blockPos + offset)
     return True
+
+
+def expand(obj, text: str = '', mode: str = 'random', totalCount: int = 0):
+    if isinstance(obj, Node):
+        for part in obj.getParts():
+            if isinstance(part, str):
+                text += part
+            elif isinstance(part, Block):
+                text, totalCount = expand(part, text)
+    elif isinstance(obj, Block) and (nodes := obj.getNodes(skipOriginal=False)):
+        if mode == 'first':
+            totalCount += len(nodes)
+            node = nodes[0]
+        elif mode == 'last':
+            node = nodes[-1]
+        else:
+            node = choice(nodes)
+        text, totalCount = expand(node, text, mode=mode)
+    return text, totalCount
 
 
 def changeStyleProperty(style: str, prop: str, val: str) -> str:

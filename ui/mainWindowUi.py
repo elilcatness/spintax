@@ -1,12 +1,14 @@
 from PyQt6 import QtCore, QtGui, QtWidgets
+from PyQt6.QtWidgets import QListWidget
 
-from src.constants import TEXT_FIELD_STYLE, EXPORT_RESOURCE_SHORTCUT, OPEN_SHORTCUT
+from src.constants import TEXT_FIELD_STYLE, EXPORT_RESOURCE_SHORTCUT, OPEN_SHORTCUT, EXPORT_SHORTCUT
 from src.customClasses import InputTextField
 
 
 class UiMainWindow:
     centralwidget = None
     inpText = None
+    samplesList = None
     outpText = None
     vertical = None
     menubar = None
@@ -14,6 +16,7 @@ class UiMainWindow:
     openAction = None
     exportMenu = None
     resourceAction = None
+    exportAction = None
     viewMenu = None
     blocksAction = None
     statusbar = None
@@ -23,6 +26,8 @@ class UiMainWindow:
         self.centralwidget = QtWidgets.QWidget(parent=MainWindow)
         self.inpText = InputTextField(MainWindow, parent=self.centralwidget)
         self.inpText.setStyleSheet(TEXT_FIELD_STYLE)
+        # self.samplesList = QListWidget(parent=self.centralwidget)
+
         self.outpText = QtWidgets.QPlainTextEdit(parent=self.centralwidget)
         self.outpText.setStyleSheet(TEXT_FIELD_STYLE)
         self.outpText.setReadOnly(True)
@@ -43,6 +48,9 @@ class UiMainWindow:
         self.resourceAction = QtGui.QAction(parent=MainWindow)
         self.resourceAction.setShortcut(EXPORT_RESOURCE_SHORTCUT)
         self.exportMenu.addAction(self.resourceAction)
+        self.exportAction = QtGui.QAction(parent=MainWindow)
+        self.exportAction.setShortcut(EXPORT_SHORTCUT)
+        self.exportMenu.addAction(self.exportAction)
         self.viewMenu = QtWidgets.QMenu(parent=self.menubar)
         self.blocksAction = QtGui.QAction(parent=MainWindow)
         self.viewMenu.addAction(self.blocksAction)

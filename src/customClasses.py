@@ -1,3 +1,5 @@
+import time
+
 from PyQt6.QtCore import QObject, pyqtSignal, QTimer, Qt
 from PyQt6.QtGui import QMouseEvent, QKeyEvent, QActionEvent, QClipboard
 from PyQt6.QtWidgets import QPushButton, QPlainTextEdit, QApplication
@@ -65,9 +67,6 @@ class AlternativeTextField(InputTextField):
     focusInProcess = False
 
     def focusOutEvent(self, event):
-        if self.focusInProcess:
-            return
-        self.focusInProcess = True
         try:
             texts = [field.toPlainText() for field in self.parent.fields]
             if texts != self.parent.savedTexts:
@@ -82,12 +81,10 @@ class AlternativeTextField(InputTextField):
             super(AlternativeTextField, self).focusOutEvent(event)
         except RuntimeError:
             pass
-        self.focusInProcess = False
 
     def focusInEvent(self, event):
         if self.focusInProcess:
             return
-        self.focusInProcess = True
         try:
             print('focusInEvent')
             texts = [field.toPlainText() for field in self.parent.fields]
@@ -109,7 +106,6 @@ class AlternativeTextField(InputTextField):
             super(AlternativeTextField, self).focusInEvent(event)
         except RuntimeError:
             pass
-        self.focusInProcess = False
 
     def keyPressEvent(self, event):
         repaintBlocks = False

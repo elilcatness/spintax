@@ -2,9 +2,8 @@ from PyQt6.QtCore import QObject, pyqtSignal, QTimer, Qt
 from PyQt6.QtGui import QMouseEvent, QKeyEvent, QActionEvent, QClipboard
 from PyQt6.QtWidgets import QPushButton, QPlainTextEdit, QApplication
 
-from block import Node
-from constants import TEXT_FIELD_STYLE
-from utils import changeStyleProperty, getStyleProperty, safeGet, moveBlocks
+from src.constants import TEXT_FIELD_STYLE
+from src.utils import changeStyleProperty, getStyleProperty, safeGet, moveBlocks
 
 
 class TextAppearance(QObject):
@@ -183,4 +182,4 @@ class AlternativeTextField(InputTextField):
     #     super(AlternativeTextField, self).keyPressEvent(event)
 
 
-__all__ = ['TextAppearance', 'FieldButton', 'AlternativeTextField']
+__all__ = ['TextAppearance', 'FieldButton', 'AlternativeTextField', 'InputTextField']

@@ -1,7 +1,7 @@
 from PyQt6 import QtCore, QtGui, QtWidgets
 
-from constants import TEXT_FIELD_STYLE
-from customClasses import InputTextField
+from src.constants import TEXT_FIELD_STYLE, EXPORT_RESOURCE_SHORTCUT, OPEN_SHORTCUT
+from src.customClasses import InputTextField
 
 
 class UiMainWindow:
@@ -10,15 +10,17 @@ class UiMainWindow:
     outpText = None
     vertical = None
     menubar = None
+    mainMenu = None
+    openAction = None
+    exportMenu = None
+    resourceAction = None
     viewMenu = None
-    statusbar = None
     blocksAction = None
+    statusbar = None
 
     def setupUi(self, MainWindow):
-        MainWindow.setObjectName("MainWindow")
         MainWindow.resize(825, 625)
         self.centralwidget = QtWidgets.QWidget(parent=MainWindow)
-        self.centralwidget.setObjectName("centralwidget")
         self.inpText = InputTextField(MainWindow, parent=self.centralwidget)
         self.inpText.setStyleSheet(TEXT_FIELD_STYLE)
         self.outpText = QtWidgets.QPlainTextEdit(parent=self.centralwidget)
@@ -29,21 +31,28 @@ class UiMainWindow:
         self.vertical.addWidget(self.outpText)
         self.centralwidget.setLayout(self.vertical)
         self.inpText.setReadOnly(True)
-        self.inpText.setObjectName("inp_text")
         MainWindow.setCentralWidget(self.centralwidget)
         self.menubar = QtWidgets.QMenuBar(parent=MainWindow)
         self.menubar.setGeometry(QtCore.QRect(0, 0, 807, 26))
-        self.menubar.setObjectName("menubar")
+        self.mainMenu = QtWidgets.QMenu(parent=self.menubar)
+        self.openAction = QtGui.QAction(parent=MainWindow)
+        self.openAction.setShortcut(OPEN_SHORTCUT)
+        self.mainMenu.addAction(self.openAction)
+        self.menubar.addMenu(self.mainMenu)
+        self.exportMenu = QtWidgets.QMenu(parent=self.menubar)
+        self.resourceAction = QtGui.QAction(parent=MainWindow)
+        self.resourceAction.setShortcut(EXPORT_RESOURCE_SHORTCUT)
+        self.exportMenu.addAction(self.resourceAction)
         self.viewMenu = QtWidgets.QMenu(parent=self.menubar)
-        self.viewMenu.setObjectName("view_menu")
-        MainWindow.setMenuBar(self.menubar)
-        self.statusbar = QtWidgets.QStatusBar(parent=MainWindow)
-        self.statusbar.setObjectName("statusbar")
-        MainWindow.setStatusBar(self.statusbar)
         self.blocksAction = QtGui.QAction(parent=MainWindow)
-        self.blocksAction.setObjectName("blocks_action")
         self.viewMenu.addAction(self.blocksAction)
         self.menubar.addAction(self.viewMenu.menuAction())
+        self.menubar.addMenu(self.viewMenu)
+        self.menubar.addMenu(self.exportMenu)
+
+        MainWindow.setMenuBar(self.menubar)
+        self.statusbar = QtWidgets.QStatusBar(parent=MainWindow)
+        MainWindow.setStatusBar(self.statusbar)
 
         self.retranslateUi(MainWindow)
         QtCore.QMetaObject.connectSlotsByName(MainWindow)
@@ -51,5 +60,9 @@ class UiMainWindow:
     def retranslateUi(self, MainWindow):
         _translate = QtCore.QCoreApplication.translate
         MainWindow.setWindowTitle(_translate("MainWindow", "Spintax"))
+        self.mainMenu.setTitle(_translate("MainWindow", "Программа"))
+        self.openAction.setText(_translate("MainWindow", "Открыть файл"))
+        self.exportMenu.setTitle(_translate("MainWindow", "Экспорт"))
+        self.resourceAction.setText(_translate("MainWindow", "Ресурса"))
         self.viewMenu.setTitle(_translate("MainWindow", "Просмотр"))
         self.blocksAction.setText(_translate("MainWindow", "Блоки"))

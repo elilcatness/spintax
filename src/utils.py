@@ -1,7 +1,6 @@
 from PyQt6.QtWidgets import QMainWindow, QPlainTextEdit
 
-from block import Node
-from constants import PUNCTUATION, TEXT_FIELD_STYLE
+from src.constants import PUNCTUATION
 
 
 def loadCfg(window: QMainWindow, filename: str = 'cfg.txt'):

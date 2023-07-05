@@ -1,12 +1,14 @@
 from PyQt6.QtCore import QRect, Qt
 from PyQt6.QtGui import QAction, QTextCharFormat, QColor
-from PyQt6.QtWidgets import QDialog, QVBoxLayout, QMenuBar, QMenu, QScrollArea, QDialogButtonBox, QStatusBar, QLabel, \
-    QMessageBox, QStyle, QInputDialog, QPlainTextEdit, QWidget, QPushButton
+from PyQt6.QtWidgets import (QDialog, QVBoxLayout, QMenuBar, QMenu, QScrollArea,
+                             QDialogButtonBox, QStatusBar, QLabel, QMessageBox,
+                             QStyle, QInputDialog, QPlainTextEdit, QWidget, QPushButton)
 
-from block import Block, Node
-from constants import DEFAULT_FIELDS_COUNT, SCROLL_AREA_STYLE, MAX_FIELDS_COUNT, TEXT_FIELD_STYLE, PUNCTUATION
-from customClasses import FieldButton, AlternativeTextField
-from utils import safeGet
+from src.block import Block, Node
+from src.constants import (DEFAULT_FIELDS_COUNT, SCROLL_AREA_STYLE, MAX_FIELDS_COUNT,
+                           TEXT_FIELD_STYLE, PUNCTUATION)
+from src.customClasses import FieldButton, AlternativeTextField
+from src.utils import safeGet
 
 
 class HighlightMixin:

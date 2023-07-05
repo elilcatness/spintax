@@ -1,4 +1,4 @@
-from exceptions import NodeException, BlockException
+from src.exceptions import NodeException, BlockException
 
 
 def assertNodeTypes(func):

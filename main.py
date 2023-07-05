@@ -3,19 +3,18 @@ import sys
 import ctypes
 
 from PyQt6.QtGui import QAction, QIcon
-from PyQt6.QtWidgets import QApplication, QMainWindow, QDialog, QPlainTextEdit, QVBoxLayout
+from PyQt6.QtWidgets import QApplication, QMainWindow, QDialog, QPlainTextEdit, QVBoxLayout, QFileDialog
 
-from alternatives import HighlightMixin
-from block import Node
-from constants import MAIN_ICON
-from customClasses import *
+from src.alternatives import HighlightMixin
+from src.block import Node
+from src.constants import MAIN_ICON, EXPORT_RESOURCE_DIR, EXPORT_RESOURCE_DEFAULT_FILENAME, RESTRICTED_SYMBOLS
+from src.customClasses import *
 from ui.mainWindowUi import UiMainWindow
-from utils import getExtension
+from src.utils import getExtension
 
 
 class Window(QMainWindow, UiMainWindow, HighlightMixin):
     colors = ['yellow', 'orange']
-    filename = 'input.txt'
 
     def __init__(self, *args, **kwargs):
         super(Window, self).__init__(*args, **kwargs)
@@ -33,24 +32,40 @@ class Window(QMainWindow, UiMainWindow, HighlightMixin):
         self.alternativeWnd = None
         self.node = None
         self.blocksChronology = []
-        self.loadText(self.filename)
+        self.savedText = None
+        self.loadText()
         self.inpText.setReadOnly(True)
 
+        self.openAction.triggered.connect(self.loadText)
+        self.resourceAction.triggered.connect(self.exportResource)
         self.blocksAction.triggered.connect(self.showBlocks)
         self.viewMenu.addAction(self.blocksAction)
 
-    def loadText(self, filename: str):
-        ext = getExtension(filename)
-        if ext == 'txt':
-            with open(filename, encoding='utf-8') as f:
+    def loadText(self):
+        if self.node is not None:
+            self.exportResource(innerCall=True)
+        path, group = QFileDialog.getOpenFileName(
+            self, 'Выберите документ для загрузки', '',
+            'Текстовые документы (*.txt);;Документы Microsoft Word (*.docx *.doc)')
+        if not path:
+            if self.savedText is None:
+                exit()
+            return
+        if '*.txt' in group:
+            with open(path, encoding='utf-8') as f:
                 text = f.read()
-        elif ext in ('docx', 'doc'):
-            pass
-        else:
-            raise Exception(f'Invalid extension of {filename}')
-        self.inpText.insertPlainText(text)
-        self.outpText.insertPlainText(text)
+        elif any(ext in group for ext in ('*docx', '*.doc')):
+            print('word')
+        if not text:
+            return self.statusbar.showMessage(f'Файл {path} пуст!')
+        if any(s in text for s in RESTRICTED_SYMBOLS):
+            return self.statusbar.showMessage(
+                f'Файл содержит запрещённые символы из набора: {RESTRICTED_SYMBOLS}')
+        self.inpText.setPlainText(text)
+        self.outpText.setPlainText(text)
         self.node = Node(text)
+        if self.savedText is None:
+            self.savedText = text
 
     def handleSelection(self):
         if self.txtAppear.is_active():
@@ -94,6 +109,29 @@ class Window(QMainWindow, UiMainWindow, HighlightMixin):
     def cancelBlock(self):
         self.node.removeBlock(self.blocksChronology.pop())
         self.repaint()
+
+    def exportResource(self, innerCall: bool = False):
+        text = str(self.node)
+        if not text:
+            return self.statusbar.showMessage('Ресурсный текст пуст')
+        if text == self.inpText.toPlainText():
+            return (self.statusbar.showMessage('Ресурсный текст совпадает с исходным')
+                    if not innerCall else None)
+        if text == self.savedText:
+            return self.statusbar.showMessage('Данный ресурсный текст уже был сохранён')
+        if not os.path.exists(EXPORT_RESOURCE_DIR):
+            os.mkdir(EXPORT_RESOURCE_DIR)
+        path, _ = QFileDialog.getSaveFileName(
+            self, 'Сохраните ресурсный файл',
+            os.path.join(EXPORT_RESOURCE_DIR, EXPORT_RESOURCE_DEFAULT_FILENAME),
+            'Текстовые документы (*.txt)')
+        try:
+            with open(path, 'w', encoding='utf-8') as f:
+                f.write(text)
+        except FileNotFoundError:
+            return self.exportResource()
+        self.savedText = text
+        self.statusbar.showMessage(f'Файл {path} был успешно сохранён!')
 
     def _getNode(self, _):
         return self.node

@@ -204,8 +204,12 @@ class Alternatives(QDialog, HighlightMixin):
         if scrollToBottom:
             self.scrollBar.setValue(self.scrollBar.maximum())
         elif scrollToField is not None and fieldsCount:
-            scrollFieldValue = self.scrollBar.maximum() // fieldsCount
-            self.scrollBar.setValue(int(scrollToField * scrollFieldValue * 1.5))
+            field = safeGet(self.fields, scrollToField, None)
+            if field:
+                self.scrollArea.ensureWidgetVisible(field)
+                print(f'ensure {field}')
+            # scrollFieldValue = self.scrollBar.maximum() // fieldsCount
+            # self.scrollBar.setValue(int(scrollToField * scrollFieldValue * 1.5))
 
     def moveBlocks(self):
         field: AlternativeTextField = self.sender()

@@ -129,19 +129,27 @@ class AlternativeTextField(InputTextField):
                         repaintBlocks = True
                 elif key in (Qt.Key.Key_Delete, Qt.Key.Key_Backspace, Qt.Key.Key_X):
                     cursor = self.textCursor()
-                    if cursor.hasSelection() and (pos := cursor.position()) > 0:
+                    if cursor.hasSelection() and (pos := cursor.selectionEnd()) > 0:
                         selectedText = cursor.selectedText()
                         offset = len(selectedText)
-                        self._handleBlocks(self.toPlainText(), blocks, pos, -offset)
+                        self._handleBlocks(self.toPlainText(), blocks, pos, -offset, action='remove')
                         repaintBlocks = True
-            elif not modifiers and text and (pos := self.textCursor().position()) > 0:
-                self._handleBlocks(text, blocks, pos, 1)
+            elif not modifiers and text and (pos := self.textCursor().selectionEnd()) > 0:
+                start = self.textCursor().selectionStart()
+                offset = 1 if pos - start <= 1 else pos - start
+                print(f'{offset=}')
+                if event.key() in (Qt.Key.Key_Delete, Qt.Key.Key_Backspace):
+                    cursor = self.textCursor()
+                    # print(f'{cursor.selectionStart()=}, {cursor.selectionEnd()=}')
+                    self._handleBlocks(text, blocks, pos, -offset, action='remove')
+                else:
+                    self._handleBlocks(text, blocks, pos, 1)
                 repaintBlocks = True
         super(AlternativeTextField, self).keyPressEvent(event)
         if repaintBlocks and blocks:
             self.parent.paintBlocks(self, blocks, self.parent.colors)
 
-    def _handleBlocks(self, text: str, blocks, pos: int, offset: int):
+    def _handleBlocks(self, text: str, blocks, pos: int, offset: int, action: str = 'add'):
         if not moveBlocks(blocks, pos, offset):
             statusText = 'Не удалось переместить блоки'
             try:
@@ -152,7 +160,12 @@ class AlternativeTextField(InputTextField):
             self.parent.statusLabel.setText(statusText)
         else:
             newText = self.toPlainText()
-            newText = newText[:pos] + text + newText[pos:]
+            if action == 'add':
+                newText = newText[:pos] + text + newText[pos:]
+            elif action == 'remove':
+                newText = newText[:pos + offset] + newText[pos:]
+            else:
+                raise Exception('Unknown action passed into _handleBlocks')
             self.parent.node.setParts(newText)
             for block in blocks:
                 self.parent.node.insertBlock(block)

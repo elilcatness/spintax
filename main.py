@@ -32,7 +32,6 @@ class Window(QMainWindow, UiMainWindow, HighlightMixin):
         self.txtAppear.connect(self.highlight)
         self.alternativeWnd = None
         self.node = None
-        # self.blocks = []
         self.blocksChronology = []
         self.loadText(self.filename)
         self.inpText.setReadOnly(True)

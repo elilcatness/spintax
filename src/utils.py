@@ -68,14 +68,10 @@ def moveBlocks(blocks, fromPos: int, offset: int) -> bool:
 
 def expand(ancestor):
     q = [ancestor]
-    texts = []
+    texts = set()
     while q:
         node = q.pop(0)
-        blocks = node.getBlocks()
-        if not blocks:
-            texts.append(node.getOriginal())
-            continue
-        for block in blocks:
+        for block in node.getBlocks():
             for blockNode in block.getNodes(skipOriginal=False):
                 parts = node.getParts()
                 for i in range(len(parts)):
@@ -85,6 +81,10 @@ def expand(ancestor):
                         break
                 subNode = Node(*parts)
                 q.append(subNode)
+                if (text := subNode.getOriginal()) not in texts:
+                    q.append(subNode)
+                    texts.add(text)
+                    yield text
     return texts
 
 

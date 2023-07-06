@@ -1,5 +1,5 @@
 from PyQt6 import QtCore, QtGui, QtWidgets
-from PyQt6.QtWidgets import QListWidget
+from PyQt6.QtWidgets import QListWidget, QListWidgetItem
 
 from src.constants import TEXT_FIELD_STYLE, EXPORT_RESOURCE_SHORTCUT, OPEN_SHORTCUT, EXPORT_SHORTCUT
 from src.customClasses import InputTextField
@@ -8,7 +8,7 @@ from src.customClasses import InputTextField
 class UiMainWindow:
     centralwidget = None
     inpText = None
-    samplesList = None
+    previewList = None
     outpText = None
     vertical = None
     menubar = None
@@ -26,13 +26,14 @@ class UiMainWindow:
         self.centralwidget = QtWidgets.QWidget(parent=MainWindow)
         self.inpText = InputTextField(MainWindow, parent=self.centralwidget)
         self.inpText.setStyleSheet(TEXT_FIELD_STYLE)
-        # self.samplesList = QListWidget(parent=self.centralwidget)
-
+        self.previewList = QListWidget(parent=self.centralwidget)
+        self.previewList.setStyleSheet(TEXT_FIELD_STYLE)
         self.outpText = QtWidgets.QPlainTextEdit(parent=self.centralwidget)
         self.outpText.setStyleSheet(TEXT_FIELD_STYLE)
         self.outpText.setReadOnly(True)
         self.vertical = QtWidgets.QVBoxLayout()
         self.vertical.addWidget(self.inpText)
+        self.vertical.addWidget(self.previewList)
         self.vertical.addWidget(self.outpText)
         self.centralwidget.setLayout(self.vertical)
         self.inpText.setReadOnly(True)
@@ -72,5 +73,6 @@ class UiMainWindow:
         self.openAction.setText(_translate("MainWindow", "Открыть файл"))
         self.exportMenu.setTitle(_translate("MainWindow", "Экспорт"))
         self.resourceAction.setText(_translate("MainWindow", "Ресурса"))
+        self.exportAction.setText(_translate("MainWindow", "Текстов"))
         self.viewMenu.setTitle(_translate("MainWindow", "Просмотр"))
         self.blocksAction.setText(_translate("MainWindow", "Блоки"))

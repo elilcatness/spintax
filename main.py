@@ -9,7 +9,8 @@ from PyQt6.QtWidgets import QApplication, QMainWindow, QDialog, QPlainTextEdit, 
 
 from src.alternatives import HighlightMixin
 from src.block import Node
-from src.constants import MAIN_ICON, EXPORT_RESOURCE_DIR, EXPORT_RESOURCE_DEFAULT_FILENAME, RESTRICTED_SYMBOLS
+from src.constants import MAIN_ICON, EXPORT_RESOURCE_DIR, EXPORT_RESOURCE_DEFAULT_FILENAME, RESTRICTED_SYMBOLS, \
+    DEFAULT_PREVIEWS_COUNT
 from src.customClasses import *
 from src.utils import expand
 from ui.mainWindowUi import UiMainWindow
@@ -35,6 +36,7 @@ class Window(QMainWindow, UiMainWindow, HighlightMixin):
         self.node = None
         self.blocksChronology = []
         self.savedText = None
+        self.previewTextsCount = DEFAULT_PREVIEWS_COUNT
         self.loadText()
         self.inpText.setReadOnly(True)
 
@@ -134,14 +136,13 @@ class Window(QMainWindow, UiMainWindow, HighlightMixin):
                 return
             shutil.rmtree(folder)
         os.mkdir(folder)
-        texts = expand(self.node)
-        count = len(texts)
-        if count == 0:
-            self.statusbar.showMessage('Не удалось сгенерировать тексты')
-        for i in range(count):
-            with open(os.path.join(folder, f'{i + 1}.txt'), 'w', encoding='utf-8') as f:
-                f.write(texts[i])
-        self.statusbar.showMessage(f'Сгенерировано текстов: {count}')
+        i = 0
+        for i, text in enumerate(expand(self.node), 1):
+            with open(os.path.join(folder, f'{i}.txt'), 'w', encoding='utf-8') as f:
+                if not isinstance(text, str):
+                    print(text)
+                f.write(text)
+        self.statusbar.showMessage(f'Сгенерировано текстов: {i}')
 
     def _getNode(self, _):
         return self.node

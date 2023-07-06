@@ -66,23 +66,26 @@ def moveBlocks(blocks, fromPos: int, offset: int) -> bool:
     return True
 
 
-def expand(obj, text: str = '', mode: str = 'random', totalCount: int = 0):
-    if isinstance(obj, Node):
-        for part in obj.getParts():
-            if isinstance(part, str):
-                text += part
-            elif isinstance(part, Block):
-                text, totalCount = expand(part, text)
-    elif isinstance(obj, Block) and (nodes := obj.getNodes(skipOriginal=False)):
-        if mode == 'first':
-            totalCount += len(nodes)
-            node = nodes[0]
-        elif mode == 'last':
-            node = nodes[-1]
-        else:
-            node = choice(nodes)
-        text, totalCount = expand(node, text, mode=mode)
-    return text, totalCount
+def expand(ancestor):
+    q = [ancestor]
+    texts = []
+    while q:
+        node = q.pop(0)
+        blocks = node.getBlocks()
+        if not blocks:
+            texts.append(node.getOriginal())
+            continue
+        for block in blocks:
+            for blockNode in block.getNodes(skipOriginal=False):
+                parts = node.getParts()
+                for i in range(len(parts)):
+                    if parts[i] == block:
+                        subParts = blockNode.getParts()
+                        parts[i:] = subParts + parts[i + 1:]
+                        break
+                subNode = Node(*parts)
+                q.append(subNode)
+    return texts
 
 
 def changeStyleProperty(style: str, prop: str, val: str) -> str:

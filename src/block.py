@@ -85,7 +85,7 @@ class Node:
         self.parts.append(part)
 
     def getParts(self):
-        return self.parts
+        return self.parts[:]
 
     def getBlocks(self):
         return [p for p in self.getParts() if isinstance(p, Block)]

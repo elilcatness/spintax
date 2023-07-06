@@ -4,7 +4,8 @@ import sys
 import ctypes
 
 from PyQt6.QtGui import QAction, QIcon
-from PyQt6.QtWidgets import QApplication, QMainWindow, QDialog, QPlainTextEdit, QVBoxLayout, QFileDialog
+from PyQt6.QtWidgets import QApplication, QMainWindow, QDialog, QPlainTextEdit, QVBoxLayout, QFileDialog, QMessageBox, \
+    QStyle
 
 from src.alternatives import HighlightMixin
 from src.block import Node
@@ -122,17 +123,25 @@ class Window(QMainWindow, UiMainWindow, HighlightMixin):
     def export(self):
         folder = 'texts'
         if os.path.exists(folder):
+            dlg = QMessageBox(self)
+            dlg.setWindowTitle('Confirm an action')
+            icon = self.style().standardIcon(QStyle.StandardPixmap.SP_MessageBoxWarning)
+            dlg.setWindowIcon(icon)
+            dlg.setText('Вы уверены, что хотите провести экспорт текстов?\n'
+                        f'Папка {folder} будет полностью перезаписана')
+            dlg.setStandardButtons(QMessageBox.StandardButton.Yes | QMessageBox.StandardButton.No)
+            if dlg.exec() != QMessageBox.StandardButton.Yes:
+                return
             shutil.rmtree(folder)
         os.mkdir(folder)
-        totalCount = 0
-        for i, mode in enumerate(('first', 'last', 'random'), 1):
-            if i == 0:
-                text, totalCount = expand(self.node, mode=mode, totalCount=totalCount)
-                print(f'{totalCount=}')
-            else:
-                text, _ = expand(self.node, mode=mode)
-            with open(os.path.join(folder, f'{i}.txt'), 'w', encoding='utf-8') as f:
-                f.write(text)
+        texts = expand(self.node)
+        count = len(texts)
+        if count == 0:
+            self.statusbar.showMessage('Не удалось сгенерировать тексты')
+        for i in range(count):
+            with open(os.path.join(folder, f'{i + 1}.txt'), 'w', encoding='utf-8') as f:
+                f.write(texts[i])
+        self.statusbar.showMessage(f'Сгенерировано текстов: {count}')
 
     def _getNode(self, _):
         return self.node

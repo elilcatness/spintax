@@ -85,7 +85,7 @@ def expand(ancestor):
                     q.append(subNode)
                     texts.add(text)
                     yield text
-    return texts
+    # return texts
 
 
 def changeStyleProperty(style: str, prop: str, val: str) -> str:

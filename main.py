@@ -5,7 +5,7 @@ import ctypes
 
 from PyQt6.QtGui import QAction, QIcon
 from PyQt6.QtWidgets import QApplication, QMainWindow, QDialog, QPlainTextEdit, QVBoxLayout, QFileDialog, QMessageBox, \
-    QStyle
+    QStyle, QInputDialog, QListWidgetItem
 
 from src.alternatives import HighlightMixin
 from src.block import Node
@@ -32,15 +32,20 @@ class Window(QMainWindow, UiMainWindow, HighlightMixin):
         self.inpText.addAction(self.cancelAction)
         self.txtAppear = TextAppearance()
         self.txtAppear.connect(self.highlight)
+
         self.alternativeWnd = None
         self.node = None
         self.blocksChronology = []
+        self.previewsCount = DEFAULT_PREVIEWS_COUNT
         self.savedText = None
-        self.previewTextsCount = DEFAULT_PREVIEWS_COUNT
+        self.generator = None
+        self.previews = []
+
         self.loadText()
         self.inpText.setReadOnly(True)
 
         self.openAction.triggered.connect(self.loadText)
+        self.previewsAction.triggered.connect(self.setPreviewsCount)
         self.resourceAction.triggered.connect(self.exportResource)
         self.exportAction.triggered.connect(self.export)
         self.blocksAction.triggered.connect(self.showBlocks)
@@ -84,6 +89,11 @@ class Window(QMainWindow, UiMainWindow, HighlightMixin):
         block, idx = highlightResults
         self.repaint()
         self.showBlock(block)
+        if (text := self.outpText.toPlainText()) != self.savedText:
+            self.savedText = text
+            self.generator = expand(self.node)
+            self.previews = []
+            self.refreshPreviews()
         if idx is not None:
             self.blocksChronology.append(idx)
 
@@ -143,6 +153,35 @@ class Window(QMainWindow, UiMainWindow, HighlightMixin):
                     print(text)
                 f.write(text)
         self.statusbar.showMessage(f'Сгенерировано текстов: {i}')
+
+    def setPreviewsCount(self):
+        previewsCount, ok = QInputDialog.getInt(
+            self, 'Previews count', 'Введите количество текстов для предпросмотра:', min=1)
+        if not ok or previewsCount == self.previewsCount:
+            return
+        self.previewsCount = previewsCount
+        if self.previewsCount == 2:
+            print('...')
+        self.generator = expand(self.node)
+        self.refreshPreviews()
+
+    def refreshPreviews(self):
+        if self.generator is None:
+            return
+        # if offset == 0:
+        self.previewList.clear()
+        # elif offset < 0:
+        #     for _ in range(abs(offset)):
+        #         self.previewList.takeItem(self.previewList.count() - 1)
+        #     return self.previewList.repaint()
+        for i in range(self.previewsCount):
+            try:
+                text = next(self.generator)
+            except StopIteration:
+                print(i + 1)
+                break
+            self.previews.append(text)
+            self.previewList.addItem(QListWidgetItem(f'Текст {i + 1}'))
 
     def _getNode(self, _):
         return self.node

@@ -215,6 +215,7 @@ class Alternatives(QDialog, HighlightMixin):
             # self.scrollBar.setValue(int(scrollToField * scrollFieldValue * 1.5))
 
     def moveBlocks(self):
+        # noinspection PyTypeChecker
         field: AlternativeTextField = self.sender()
         idx = self.fields.index(field)
         node = self.block.getNode(idx)

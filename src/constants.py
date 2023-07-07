@@ -5,6 +5,7 @@ DEFAULT_FIELDS_COUNT = 10
 DEFAULT_PREVIEWS_COUNT = 10
 MAX_FIELDS_COUNT = 100
 TAB_CODE = 16777217
+ENTER_CODE = 16777220
 MAIN_ICON = 'main.png'
 TEXT_FIELD_STYLE = ('border: 1px solid; border-radius: 5px; '
                     'border-color: white; background-color: palette(base);')

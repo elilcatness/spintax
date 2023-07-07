@@ -1,5 +1,7 @@
+import time
+
 from PyQt6.QtCore import QRect, Qt
-from PyQt6.QtGui import QAction, QTextCharFormat, QColor
+from PyQt6.QtGui import QAction, QTextCharFormat, QColor, QTextCursor
 from PyQt6.QtWidgets import (QDialog, QVBoxLayout, QMenuBar, QMenu, QScrollArea,
                              QDialogButtonBox, QStatusBar, QLabel, QMessageBox,
                              QStyle, QInputDialog, QPlainTextEdit, QWidget, QPushButton)
@@ -130,7 +132,7 @@ class Alternatives(QDialog, HighlightMixin):
         self.node = None
         self.isSaving = False
 
-        self.initWidget(fieldsCount)
+        self.initWidget(fieldsCount, scrollToField=0)
         self.scrollArea.setAlignment(Qt.AlignmentFlag.AlignCenter)
         self.mainLayout.addWidget(self.scrollArea)
 
@@ -158,7 +160,8 @@ class Alternatives(QDialog, HighlightMixin):
         # self.chronologies = [[] for _ in range()]
 
     def initWidget(self, fieldsCount: int, scrollToBottom: bool = False,
-                   scrollToField: int = None, textToFocus: str = None):
+                   scrollToField: int = None, textToFocus: str = None,
+                   cursorStart: int = 0, cursorEnd: int = 0):
         for obj in self.widget, self.layout, self.infoText:
             if obj:
                 del obj
@@ -195,11 +198,8 @@ class Alternatives(QDialog, HighlightMixin):
                 if blocks:
                     self.paintBlocks(field, blocks, self.colors)
             if textToFocus and field.toPlainText() == textToFocus:
-                field.setFocus()
                 textToFocus = None
                 scrollToField = i
-            # noinspection PyUnresolvedReferences
-            # field.textChanged.connect(self.moveBlocks)
             btn = FieldButton(field, 'Delete')
             btn.setStyleSheet('background: #FA5F55')
             # noinspection PyUnresolvedReferences
@@ -217,14 +217,20 @@ class Alternatives(QDialog, HighlightMixin):
         self.layout.addWidget(self.addFieldsBtn)
         self.widget.setLayout(self.layout)
         self.scrollArea.setWidget(self.widget)
-        if scrollToBottom:
-            self.scrollBar.setValue(self.scrollBar.maximum())
-        elif scrollToField is not None and fieldsCount:
+        if scrollToField is not None and fieldsCount:
             field = safeGet(self.fields, scrollToField, None)
             if field:
-                self.scrollArea.ensureWidgetVisible(field)
-            # scrollFieldValue = self.scrollBar.maximum() // fieldsCount
-            # self.scrollBar.setValue(int(scrollToField * scrollFieldValue * 1.5))
+                self.scrollArea.ensureWidgetVisible(self.fields[scrollToField])
+                self.fields[scrollToField].setFocus()
+                if cursorStart and cursorEnd:
+                    cursor = self.fields[scrollToField].textCursor()
+                    cursor.setPosition(cursorStart)
+                    cursor.setPosition(cursorEnd, cursor.MoveMode.KeepAnchor)
+                    self.fields[scrollToField].setTextCursor(cursor)
+            elif not scrollToBottom:
+                scrollToBottom = True
+        if scrollToBottom:
+            self.scrollBar.setValue(self.scrollBar.maximum())
 
     def moveBlocks(self):
         # noinspection PyTypeChecker
@@ -264,15 +270,19 @@ class Alternatives(QDialog, HighlightMixin):
                 activeField = field
             texts.append(field.toPlainText())
         # well, yep, there are two saves, but what can you do to me?
-        if texts != self.savedTexts:
-            self.preSave()
-            return self.statusLabel.setText('Поля были сохранены перед выделением')
         if activeField is None:
             return self.statusLabel.setText(
                 'Для выделения должно быть активным одно из полей')
         if not activeField.toPlainText():
             return self.statusLabel.setText(
                 'Поле, в котором Вы пытаетесь выделить текст, пустое!')
+        if texts != self.savedTexts:
+            cursor = activeField.textCursor()
+            start, end = cursor.selectionStart(), cursor.selectionEnd()
+            self.preSave(textToFocus=activeField.toPlainText(),
+                         cursorStart=start, cursorEnd=end)
+            return self.highlight()
+            # return self.statusLabel.setText('Поля были сохранены перед выделением')
         idx = self.fields.index(activeField)
         node = self.block.getNode(idx)
         highlightResults = super(Alternatives, self).highlight(activeField, node)
@@ -306,19 +316,18 @@ class Alternatives(QDialog, HighlightMixin):
             self, 'Add fields', 'Введите количество полей:', min=1, max=possibleCount)
         if not ok:
             return
-        self.initWidget(len(self.fields) + fieldsCount, scrollToBottom=True)
+        self.initWidget(len(self.fields) + fieldsCount)
         # for _ in range(fieldsCount):
         #     self.addField()
         self.statusLabel.setText(f'Добавлено полей: {fieldsCount}')
 
-    def preSave(self, textToFocus: str = None):
-        self.isSaving = True
-        self.save()
+    def preSave(self, **kwargs):
+        if not self.save():
+            return
         fieldsCount = len(self.fields)
         self.fields = []
-        self.initWidget(fieldsCount)
+        self.initWidget(fieldsCount, **kwargs)
         self.save()
-        self.isSaving = False
 
     def save(self):
         self.repaintFields()

@@ -39,6 +39,7 @@ class Window(QMainWindow, UiMainWindow, HighlightMixin):
         self.blocksChronology = []
         self.previewsCount = DEFAULT_PREVIEWS_COUNT
         self.savedText = None
+        self.savedResourceText = None
         self.generator = None
         self.previews = []
 
@@ -108,6 +109,7 @@ class Window(QMainWindow, UiMainWindow, HighlightMixin):
         self.node.removeBlock(self.blocksChronology.pop())
         self.repaint()
         self.generator = expand(self.node)
+        self.previews = []
         self.refreshPreviews()
 
     def exportResource(self, innerCall: bool = False):
@@ -117,7 +119,7 @@ class Window(QMainWindow, UiMainWindow, HighlightMixin):
         if text == self.inpText.toPlainText():
             return (self.statusbar.showMessage('Ресурсный текст совпадает с исходным')
                     if not innerCall else None)
-        if text == self.savedText:
+        if text == self.savedResourceText:
             return self.statusbar.showMessage('Данный ресурсный текст уже был сохранён')
         if not os.path.exists(EXPORT_RESOURCE_DIR):
             os.mkdir(EXPORT_RESOURCE_DIR)
@@ -130,7 +132,7 @@ class Window(QMainWindow, UiMainWindow, HighlightMixin):
                 f.write(text)
         except FileNotFoundError:
             return self.exportResource()
-        self.savedText = text
+        self.savedResourceText = text
         self.statusbar.showMessage(f'Файл {path} был успешно сохранён!')
 
     def export(self):
@@ -148,10 +150,10 @@ class Window(QMainWindow, UiMainWindow, HighlightMixin):
             shutil.rmtree(folder)
         os.mkdir(folder)
         i = 0
-        for i, text in enumerate(expand(self.node), 1):
-            with open(os.path.join(folder, f'{i}.txt'), 'w', encoding='utf-8') as f:
-                f.write(text)
-        self.statusbar.showMessage(f'Сгенерировано текстов: {i}')
+        for i in range(len(self.previews)):
+            with open(os.path.join(folder, f'{i + 1}.txt'), 'w', encoding='utf-8') as f:
+                f.write(self.previews[i])
+        self.statusbar.showMessage(f'Записано текстов: {i + 1}')
 
     def setPreviewsCount(self):
         previewsCount, ok = QInputDialog.getInt(
@@ -165,12 +167,14 @@ class Window(QMainWindow, UiMainWindow, HighlightMixin):
         else:
             offset = 0
             self.generator = expand(self.node)
+            self.previews = []
         self.refreshPreviews(offset)
 
     def refreshPreviews(self, offset: int = 0):
         if offset > 0:
             for _ in range(abs(offset)):
                 self.previewList.takeItem(self.previewList.count() - 1)
+                self.previews.pop(-1)
             self.previewList.repaint()
         elif self.generator is None:
             return

@@ -4,7 +4,7 @@ from PyQt6.QtCore import QObject, pyqtSignal, QTimer, Qt
 from PyQt6.QtGui import QMouseEvent, QKeyEvent, QActionEvent, QClipboard
 from PyQt6.QtWidgets import QPushButton, QPlainTextEdit, QApplication
 
-from src.constants import TEXT_FIELD_STYLE
+from src.constants import TEXT_FIELD_STYLE, TAB_CODE, ENTER_CODE
 from src.utils import changeStyleProperty, getStyleProperty, safeGet, moveBlocks
 
 
@@ -64,13 +64,8 @@ class InputTextField(QPlainTextEdit):
 
 
 class AlternativeTextField(InputTextField):
-    focusInProcess = False
-
     def focusOutEvent(self, event):
         try:
-            texts = [field.toPlainText() for field in self.parent.fields]
-            if texts != self.parent.savedTexts:
-                self.parent.preSave()
             defaultBorderColor = getStyleProperty(TEXT_FIELD_STYLE, 'border-color', 'white')
             style = changeStyleProperty(self.styleSheet(), 'border-color', defaultBorderColor)
             self.setStyleSheet(style)
@@ -83,13 +78,7 @@ class AlternativeTextField(InputTextField):
             pass
 
     def focusInEvent(self, event):
-        if self.focusInProcess:
-            return
         try:
-            texts = [field.toPlainText() for field in self.parent.fields]
-            if texts != self.parent.savedTexts:
-                self.parent.preSave(textToFocus=self.toPlainText())
-                return
             try:
                 idx = self.parent.fields.index(self)
             except IndexError:
@@ -106,9 +95,34 @@ class AlternativeTextField(InputTextField):
             pass
 
     def keyPressEvent(self, event):
+        if event.key() == ENTER_CODE and not event.modifiers():
+            self.clearFocus()
+            try:
+                idx = self.parent.fields.index(self)
+            except IndexError:
+                return
+            field = safeGet(self.parent.fields, idx + 1)
+            if field is not None:
+                self.parent.scrollArea.ensureWidgetVisible(field)
+                field.setFocus()
+            return
         repaintBlocks = False
         blocks = []
         if self.parent.node is not None and (blocks := self.parent.node.getBlocks()):
+            cursor = self.textCursor()
+            start, end = cursor.selectionStart(), cursor.selectionEnd()
+            leave = False
+            if event.key() not in (Qt.Key.Key_Left, Qt.Key.Key_Right):
+                for block in blocks:
+                    blockStart, blockEnd = block.getPos(), block.getEnd()
+                    if start <= blockStart <= end or start <= blockEnd <= end:
+                        leave = True
+                        break
+                if leave:
+                    if start < end:
+                        cursor.clearSelection()
+                        self.setTextCursor(cursor)
+                    return
             modifiers = event.modifiers()
             text = event.text()
             if modifiers & Qt.KeyboardModifier.ControlModifier:
@@ -127,15 +141,17 @@ class AlternativeTextField(InputTextField):
                         offset = len(selectedText)
                         self._handleBlocks(self.toPlainText(), blocks, pos, -offset, action='remove')
                         repaintBlocks = True
-            elif not modifiers and text and (pos := self.textCursor().selectionEnd()) > 0:
+            elif not modifiers and text:
                 start = self.textCursor().selectionStart()
+                pos = self.textCursor().selectionEnd()
                 offset = 1 if pos - start <= 1 else pos - start
-                if event.key() in (Qt.Key.Key_Delete, Qt.Key.Key_Backspace):
-                    cursor = self.textCursor()
+                print(f'{offset=}')
+                if event.key() in (Qt.Key.Key_Delete, Qt.Key.Key_Backspace) and pos > 0:
+                    # cursor = self.textCursor()
                     # print(f'{cursor.selectionStart()=}, {cursor.selectionEnd()=}')
                     self._handleBlocks(text, blocks, pos, -offset, action='remove')
                 else:
-                    self._handleBlocks(text, blocks, pos, 1)
+                    self._handleBlocks(text, blocks, pos, offset)
                 repaintBlocks = True
         super(AlternativeTextField, self).keyPressEvent(event)
         if repaintBlocks and blocks:
@@ -161,18 +177,6 @@ class AlternativeTextField(InputTextField):
             self.parent.node.setParts(newText)
             for block in blocks:
                 self.parent.node.insertBlock(block)
-
-    # def keyPressEvent(self, event: QKeyEvent):
-    #     if event.isInputEvent() and self.parent.node is not None:
-    #         if event.key() == Qt.Key.Key_V and (event.modifiers() & Qt.KeyboardModifier.ControlModifier):
-    #             pass
-    #         # pos = self.textCursor().position()
-    #         # blocks = self.parent.node.getBlocks()
-    #         # for block in blocks:
-    #         #     if block.getPos() >= pos:
-    #         #         block.setPos(block.getPos() + 1)
-    #         # self.parent.paintBlocks(self, blocks, self.parent.colors)
-    #     super(AlternativeTextField, self).keyPressEvent(event)
 
 
 __all__ = ['TextAppearance', 'FieldButton', 'AlternativeTextField', 'InputTextField']

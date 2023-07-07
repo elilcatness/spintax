@@ -89,6 +89,9 @@ class Window(QMainWindow, UiMainWindow, HighlightMixin):
         self.inpText.setPlainText(text)
         self.outpText.setPlainText(text)
         self.node = Node(text)
+        self.generator = None
+        self.refreshPreviews(offset=len(self.previews))
+        self.repaint()
         if self.savedText is None:
             self.savedText = text
 
@@ -130,7 +133,8 @@ class Window(QMainWindow, UiMainWindow, HighlightMixin):
             return (self.statusbar.showMessage('Ресурсный текст совпадает с исходным')
                     if not innerCall else None)
         if text == self.savedResourceText:
-            return self.statusbar.showMessage('Данный ресурсный текст уже был сохранён')
+            return (self.statusbar.showMessage('Данный ресурсный текст уже был сохранён')
+                    if not innerCall else None)
         if not os.path.exists(EXPORT_RESOURCE_DIR):
             os.mkdir(EXPORT_RESOURCE_DIR)
         path, _ = QFileDialog.getSaveFileName(

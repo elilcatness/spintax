@@ -69,10 +69,6 @@ class AlternativeTextField(InputTextField):
             defaultBorderColor = getStyleProperty(TEXT_FIELD_STYLE, 'border-color', 'white')
             style = changeStyleProperty(self.styleSheet(), 'border-color', defaultBorderColor)
             self.setStyleSheet(style)
-            cursor = self.textCursor()
-            if cursor.hasSelection():
-                cursor.clearSelection()
-                self.setTextCursor(cursor)
             super(AlternativeTextField, self).focusOutEvent(event)
         except RuntimeError:
             pass

@@ -25,6 +25,7 @@ class Window(QMainWindow, UiMainWindow, HighlightMixin):
         self.setWindowTitle('Spintax')
         self.setWindowIcon(QIcon(os.path.join('icons', MAIN_ICON)))
         self.inpText.selectionChanged.connect(self.handleSelection)
+        self.previewList.itemClicked.connect(self.previewText)
         self.cancelAction = QAction()
         self.cancelAction.setShortcut('Ctrl+Z')
         # noinspection PyUnresolvedReferences
@@ -184,6 +185,22 @@ class Window(QMainWindow, UiMainWindow, HighlightMixin):
                 self.previewList.addItem(QListWidgetItem(f'Текст {i + 1}'))
         self.previewLabel.setText(f'Текстов показано: {self.previewList.count()}\n'
                                   f'Лимит текстов: {self.previewsCount}')
+
+    def previewText(self):
+        if len(selected := self.previewList.selectedItems()) > 1:
+            return self.statusbar.showMessage(f'Выделите только один текст')
+        if not selected:
+            return
+        idx = self.previewList.indexFromItem(selected[0]).row()
+        dlg = QDialog(self)
+        dlg.setWindowTitle(f'Текст {idx + 1}')
+        size = self.inpText.size()
+        dlg.resize(size)
+        dlg.text = QPlainTextEdit(dlg)
+        dlg.text.resize(size)
+        dlg.text.setPlainText(self.previews[idx])
+        dlg.text.setReadOnly(True)
+        dlg.show()
 
     def _getNode(self, _):
         return self.node

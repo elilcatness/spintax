@@ -96,6 +96,7 @@ class Alternatives(QDialog, HighlightMixin):
                  fieldsCount: int = DEFAULT_FIELDS_COUNT):
         super(Alternatives, self).__init__()
         self.parent = parent
+        self.setWindowIcon(self.parent.windowIcon())
         self.block = block
         self.deleteBlockOnClose = not bool(block.getNodes())
 

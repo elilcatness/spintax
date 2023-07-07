@@ -161,25 +161,3 @@ class Block:
 
     def __str__(self):
         return self.__repr__()
-
-
-# noinspection PyArgumentList
-def main():
-    text = 'abc efg hij'
-    node = Node(text)
-    blockText = 'efg'
-    block = Block(blockText, text.index(blockText), 'Efg', 'EFG')
-    print(node)
-    node.insertBlock(block)
-    print(node)
-    node.removeBlock(block)
-    print(node)
-    # blockPos = text.index('efg')
-    # blockEnd = blockPos + len(blockText)
-
-    # n = Node('abc', Block('efg', 2, 'EFG'), delimiter=' ')
-    # print(n)
-
-
-if __name__ == '__main__':
-    main()

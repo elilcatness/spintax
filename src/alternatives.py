@@ -8,14 +8,21 @@ from src.block import Block, Node
 from src.constants import (DEFAULT_FIELDS_COUNT, SCROLL_AREA_STYLE, MAX_FIELDS_COUNT,
                            TEXT_FIELD_STYLE, PUNCTUATION)
 from src.customClasses import FieldButton, AlternativeTextField
-from src.utils import safeGet
+from src.utils import safeGet, expand
 
 
 class HighlightMixin:
     alternativeWnd = None
+    generator = None
     node = None
+    outpText = None
+    savedText = None
+    previews = None
 
     def repaint(self):
+        pass
+
+    def refreshPreviews(self):
         pass
 
     def showBlock(self, block: Block):
@@ -24,6 +31,11 @@ class HighlightMixin:
         self.alternativeWnd.exec()
         if not isinstance(self, Alternatives):
             self.repaint()
+            if (text := self.outpText.toPlainText()) != self.savedText:
+                self.savedText = text
+                self.generator = expand(self.node)
+                self.previews = []
+                self.refreshPreviews()
 
     def highlight(self, textField: QPlainTextEdit, node):
         cursor = textField.textCursor()
@@ -210,7 +222,6 @@ class Alternatives(QDialog, HighlightMixin):
             field = safeGet(self.fields, scrollToField, None)
             if field:
                 self.scrollArea.ensureWidgetVisible(field)
-                print(f'ensure {field}')
             # scrollFieldValue = self.scrollBar.maximum() // fieldsCount
             # self.scrollBar.setValue(int(scrollToField * scrollFieldValue * 1.5))
 
@@ -223,10 +234,7 @@ class Alternatives(QDialog, HighlightMixin):
             return
         text = field.toPlainText()
         original = node.getOriginal()
-        print(f'{text=}')
-        print(f'{original=}')
         if text == original:
-            print('return')
             return
         pos = field.textCursor().position()
         for block in node.getBlocks():
@@ -303,8 +311,6 @@ class Alternatives(QDialog, HighlightMixin):
         self.statusLabel.setText(f'Добавлено полей: {fieldsCount}')
 
     def preSave(self, textToFocus: str = None):
-        if textToFocus == 'dsadsa':
-            print(textToFocus)
         self.isSaving = True
         self.save()
         fieldsCount = len(self.fields)

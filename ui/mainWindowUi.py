@@ -1,6 +1,6 @@
 from PyQt6.QtCore import QRect, QMetaObject, QCoreApplication
 from PyQt6.QtGui import QAction
-from PyQt6.QtWidgets import QListWidget, QWidget, QPlainTextEdit, QVBoxLayout, QMenuBar, QMenu, QStatusBar
+from PyQt6.QtWidgets import QListWidget, QWidget, QPlainTextEdit, QVBoxLayout, QMenuBar, QMenu, QStatusBar, QLabel
 
 from src.constants import TEXT_FIELD_STYLE, EXPORT_RESOURCE_SHORTCUT, OPEN_SHORTCUT, EXPORT_SHORTCUT, \
     PREVIEWS_COUNT_SHORTCUT
@@ -10,7 +10,9 @@ from src.customClasses import InputTextField
 class UiMainWindow:
     centralwidget = None
     inpText = None
+    previewLayout = None
     previewList = None
+    previewLabel = None
     outpText = None
     vertical = None
     menubar = None
@@ -29,14 +31,18 @@ class UiMainWindow:
         self.centralwidget = QWidget(parent=MainWindow)
         self.inpText = InputTextField(MainWindow, parent=self.centralwidget)
         self.inpText.setStyleSheet(TEXT_FIELD_STYLE)
+        self.previewLayout = QVBoxLayout()
+        self.previewLabel = QLabel(parent=self.centralwidget)
+        self.previewLayout.addWidget(self.previewLabel)
         self.previewList = QListWidget(parent=self.centralwidget)
         self.previewList.setStyleSheet(TEXT_FIELD_STYLE)
+        self.previewLayout.addWidget(self.previewList)
         self.outpText = QPlainTextEdit(parent=self.centralwidget)
         self.outpText.setStyleSheet(TEXT_FIELD_STYLE)
         self.outpText.setReadOnly(True)
         self.vertical = QVBoxLayout()
         self.vertical.addWidget(self.inpText)
-        self.vertical.addWidget(self.previewList)
+        self.vertical.addLayout(self.previewLayout)
         self.vertical.addWidget(self.outpText)
         self.centralwidget.setLayout(self.vertical)
         self.inpText.setReadOnly(True)

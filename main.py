@@ -44,6 +44,9 @@ class Window(QMainWindow, UiMainWindow, HighlightMixin):
         self.loadText()
         self.inpText.setReadOnly(True)
 
+        self.previewLabel.setText(f'Текстов показано: {len(self.previews)}\n'
+                                  f'Лимит текстов: {self.previewsCount}')
+
         self.openAction.triggered.connect(self.loadText)
         self.previewsAction.triggered.connect(self.setPreviewsCount)
         self.resourceAction.triggered.connect(self.exportResource)
@@ -89,11 +92,6 @@ class Window(QMainWindow, UiMainWindow, HighlightMixin):
         block, idx = highlightResults
         self.repaint()
         self.showBlock(block)
-        if (text := self.outpText.toPlainText()) != self.savedText:
-            self.savedText = text
-            self.generator = expand(self.node)
-            self.previews = []
-            self.refreshPreviews()
         if idx is not None:
             self.blocksChronology.append(idx)
 
@@ -108,6 +106,8 @@ class Window(QMainWindow, UiMainWindow, HighlightMixin):
     def cancelBlock(self):
         self.node.removeBlock(self.blocksChronology.pop())
         self.repaint()
+        self.generator = expand(self.node)
+        self.refreshPreviews()
 
     def exportResource(self, innerCall: bool = False):
         text = str(self.node)
@@ -149,39 +149,41 @@ class Window(QMainWindow, UiMainWindow, HighlightMixin):
         i = 0
         for i, text in enumerate(expand(self.node), 1):
             with open(os.path.join(folder, f'{i}.txt'), 'w', encoding='utf-8') as f:
-                if not isinstance(text, str):
-                    print(text)
                 f.write(text)
         self.statusbar.showMessage(f'Сгенерировано текстов: {i}')
 
     def setPreviewsCount(self):
         previewsCount, ok = QInputDialog.getInt(
-            self, 'Previews count', 'Введите количество текстов для предпросмотра:', min=1)
+            self, 'Previews count', 'Введите количество текстов для предпросмотра:',
+            min=1, value=self.previewList.count())
         if not ok or previewsCount == self.previewsCount:
             return
         self.previewsCount = previewsCount
-        if self.previewsCount == 2:
-            print('...')
-        self.generator = expand(self.node)
-        self.refreshPreviews()
+        if self.previewsCount < (count := self.previewList.count()):
+            offset = count - previewsCount
+        else:
+            offset = 0
+            self.generator = expand(self.node)
+        self.refreshPreviews(offset)
 
-    def refreshPreviews(self):
-        if self.generator is None:
+    def refreshPreviews(self, offset: int = 0):
+        if offset > 0:
+            for _ in range(abs(offset)):
+                self.previewList.takeItem(self.previewList.count() - 1)
+            self.previewList.repaint()
+        elif self.generator is None:
             return
-        # if offset == 0:
-        self.previewList.clear()
-        # elif offset < 0:
-        #     for _ in range(abs(offset)):
-        #         self.previewList.takeItem(self.previewList.count() - 1)
-        #     return self.previewList.repaint()
-        for i in range(self.previewsCount):
-            try:
-                text = next(self.generator)
-            except StopIteration:
-                print(i + 1)
-                break
-            self.previews.append(text)
-            self.previewList.addItem(QListWidgetItem(f'Текст {i + 1}'))
+        else:
+            self.previewList.clear()
+            for i in range(self.previewsCount):
+                try:
+                    text = next(self.generator)
+                except StopIteration:
+                    break
+                self.previews.append(text)
+                self.previewList.addItem(QListWidgetItem(f'Текст {i + 1}'))
+        self.previewLabel.setText(f'Текстов показано: {self.previewList.count()}\n'
+                                  f'Лимит текстов: {self.previewsCount}')
 
     def _getNode(self, _):
         return self.node

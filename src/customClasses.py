@@ -86,7 +86,6 @@ class AlternativeTextField(InputTextField):
         if self.focusInProcess:
             return
         try:
-            print('focusInEvent')
             texts = [field.toPlainText() for field in self.parent.fields]
             if texts != self.parent.savedTexts:
                 self.parent.preSave(textToFocus=self.toPlainText())
@@ -94,7 +93,6 @@ class AlternativeTextField(InputTextField):
             try:
                 idx = self.parent.fields.index(self)
             except IndexError:
-                print('IndexError occurred')
                 exit()
             node = safeGet(self.parent.block.getNodes(), idx)
             if node is not None:
@@ -132,7 +130,6 @@ class AlternativeTextField(InputTextField):
             elif not modifiers and text and (pos := self.textCursor().selectionEnd()) > 0:
                 start = self.textCursor().selectionStart()
                 offset = 1 if pos - start <= 1 else pos - start
-                print(f'{offset=}')
                 if event.key() in (Qt.Key.Key_Delete, Qt.Key.Key_Backspace):
                     cursor = self.textCursor()
                     # print(f'{cursor.selectionStart()=}, {cursor.selectionEnd()=}')

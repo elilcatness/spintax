@@ -3,14 +3,15 @@ import shutil
 import sys
 import ctypes
 
+import textract
 from PyQt6.QtGui import QAction, QIcon
-from PyQt6.QtWidgets import QApplication, QMainWindow, QDialog, QPlainTextEdit, QVBoxLayout, QFileDialog, QMessageBox, \
-    QStyle, QInputDialog, QListWidgetItem
+from PyQt6.QtWidgets import (QApplication, QMainWindow, QDialog, QPlainTextEdit, QVBoxLayout,
+                             QFileDialog, QMessageBox, QStyle, QInputDialog, QListWidgetItem)
 
 from src.alternatives import HighlightMixin
 from src.block import Node
-from src.constants import MAIN_ICON, EXPORT_RESOURCE_DIR, EXPORT_RESOURCE_DEFAULT_FILENAME, RESTRICTED_SYMBOLS, \
-    DEFAULT_PREVIEWS_COUNT
+from src.constants import (MAIN_ICON, EXPORT_RESOURCE_DIR, EXPORT_RESOURCE_DEFAULT_FILENAME,
+                           RESTRICTED_SYMBOLS, DEFAULT_PREVIEWS_COUNT)
 from src.customClasses import *
 from src.utils import expand
 from ui.mainWindowUi import UiMainWindow
@@ -61,16 +62,24 @@ class Window(QMainWindow, UiMainWindow, HighlightMixin):
             self.exportResource(innerCall=True)
         path, group = QFileDialog.getOpenFileName(
             self, 'Выберите документ для загрузки', '',
-            'Текстовые документы (*.txt);;Документы Microsoft Word (*.docx *.doc)')
+            'Текстовые документы (*.txt *.docx)')
         if not path:
             if self.savedText is None:
-                exit()
+                sys.exit()
             return
-        if '*.txt' in group:
+        if path.endswith('.txt'):
             with open(path, encoding='utf-8') as f:
                 text = f.read()
-        elif any(ext in group for ext in ('*docx', '*.doc')):
-            print('word')
+        else:
+            try:
+                text = textract.process(path).decode('utf-8')
+            except Exception as e:
+                dlg = QMessageBox(self)
+                dlg.setWindowTitle('Error')
+                dlg.setText(f'Не удалось прочитать файл: {path}\n'
+                            f'Ошибка: {str(e)}')
+                dlg.exec()
+                return self.loadText()
         if not text:
             return self.statusbar.showMessage(f'Файл {path} пуст!')
         if any(s in text for s in RESTRICTED_SYMBOLS):

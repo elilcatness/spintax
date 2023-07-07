@@ -7,11 +7,12 @@ import textract
 from PyQt6.QtGui import QAction, QIcon
 from PyQt6.QtWidgets import (QApplication, QMainWindow, QDialog, QPlainTextEdit, QVBoxLayout,
                              QFileDialog, QMessageBox, QStyle, QInputDialog, QListWidgetItem)
+from docx import Document
 
 from src.alternatives import HighlightMixin
 from src.block import Node
 from src.constants import (MAIN_ICON, EXPORT_RESOURCE_DIR, EXPORT_RESOURCE_DEFAULT_FILENAME,
-                           RESTRICTED_SYMBOLS, DEFAULT_PREVIEWS_COUNT)
+                           RESTRICTED_SYMBOLS, DEFAULT_PREVIEWS_COUNT, EXPORT_FOLDER)
 from src.customClasses import *
 from src.utils import expand
 from ui.mainWindowUi import UiMainWindow
@@ -43,6 +44,7 @@ class Window(QMainWindow, UiMainWindow, HighlightMixin):
         self.savedResourceText = None
         self.generator = None
         self.previews = []
+        self.path = None
 
         self.loadText()
         self.inpText.setReadOnly(True)
@@ -90,6 +92,7 @@ class Window(QMainWindow, UiMainWindow, HighlightMixin):
         self.node = Node(text)
         if self.savedText is None:
             self.savedText = text
+        self.path = path
 
     def handleSelection(self):
         if self.txtAppear.is_active():
@@ -145,7 +148,7 @@ class Window(QMainWindow, UiMainWindow, HighlightMixin):
         self.statusbar.showMessage(f'Файл {path} был успешно сохранён!')
 
     def export(self):
-        folder = 'texts'
+        folder = EXPORT_FOLDER
         if os.path.exists(folder):
             dlg = QMessageBox(self)
             dlg.setWindowTitle('Confirm an action')
@@ -159,9 +162,16 @@ class Window(QMainWindow, UiMainWindow, HighlightMixin):
             shutil.rmtree(folder)
         os.mkdir(folder)
         i = 0
-        for i in range(len(self.previews)):
-            with open(os.path.join(folder, f'{i + 1}.txt'), 'w', encoding='utf-8') as f:
-                f.write(self.previews[i])
+        if self.path.endswith('.txt'):
+            for i in range(len(self.previews)):
+                with open(os.path.join(folder, f'{i + 1}.txt'), 'w', encoding='utf-8') as f:
+                    f.write(self.previews[i])
+        else:
+            for i in range(len(self.previews)):
+                doc = Document()
+                for p in self.previews[i].split('\n\n'):
+                    doc.add_paragraph(p)
+                doc.save(os.path.join(EXPORT_FOLDER, f'{i + 1}.docx'))
         self.statusbar.showMessage(f'Записано текстов: {i + 1}')
 
     def setPreviewsCount(self):

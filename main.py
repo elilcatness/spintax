@@ -44,7 +44,6 @@ class Window(QMainWindow, UiMainWindow, HighlightMixin):
         self.savedResourceText = None
         self.generator = None
         self.previews = []
-        self.path = None
 
         self.loadText()
         self.inpText.setReadOnly(True)
@@ -92,7 +91,6 @@ class Window(QMainWindow, UiMainWindow, HighlightMixin):
         self.node = Node(text)
         if self.savedText is None:
             self.savedText = text
-        self.path = path
 
     def handleSelection(self):
         if self.txtAppear.is_active():
@@ -148,23 +146,27 @@ class Window(QMainWindow, UiMainWindow, HighlightMixin):
         self.statusbar.showMessage(f'Файл {path} был успешно сохранён!')
 
     def export(self):
-        folder = EXPORT_FOLDER
-        if os.path.exists(folder):
+        extension, ok = QInputDialog.getItem(
+            self, 'Экспорт', 'Выберите расширение выходных файлов',
+            ['txt', 'docx'], 0, False)
+        if not ok:
+            return
+        if os.path.exists(EXPORT_FOLDER):
             dlg = QMessageBox(self)
             dlg.setWindowTitle('Confirm an action')
             icon = self.style().standardIcon(QStyle.StandardPixmap.SP_MessageBoxWarning)
             dlg.setWindowIcon(icon)
             dlg.setText('Вы уверены, что хотите провести экспорт текстов?\n'
-                        f'Папка {folder} будет полностью перезаписана')
+                        f'Папка {EXPORT_FOLDER} будет полностью перезаписана')
             dlg.setStandardButtons(QMessageBox.StandardButton.Yes | QMessageBox.StandardButton.No)
             if dlg.exec() != QMessageBox.StandardButton.Yes:
                 return
-            shutil.rmtree(folder)
-        os.mkdir(folder)
+            shutil.rmtree(EXPORT_FOLDER)
+        os.mkdir(EXPORT_FOLDER)
         i = 0
-        if self.path.endswith('.txt'):
+        if extension == 'txt':
             for i in range(len(self.previews)):
-                with open(os.path.join(folder, f'{i + 1}.txt'), 'w', encoding='utf-8') as f:
+                with open(os.path.join(EXPORT_FOLDER, f'{i + 1}.txt'), 'w', encoding='utf-8') as f:
                     f.write(self.previews[i])
         else:
             for i in range(len(self.previews)):
